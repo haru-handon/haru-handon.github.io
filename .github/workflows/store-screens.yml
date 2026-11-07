@@ -44,16 +44,21 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          ram-size: 4096M
+          heap-size: 1024M
+          disk-size: 4096M
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash store-assets/capture.sh
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: store-raw
           path: store-assets/raw/*.png
 
       - name: store-shots 브랜치에 원본 저장
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

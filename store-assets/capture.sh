@@ -60,22 +60,30 @@ shot() {
 CX=540
 CY=830
 
-# 1~3: 12일 모은 상태에서 오늘 열기 → 1냥 3돈
+set +e
+
+# 1~2: 12일 모은 상태에서 오늘 열기 → 1냥 3돈
 seed 12
 launch
 shot 01-closed
 adb shell input tap $CX $CY
 sleep 7
 shot 02-open
-adb shell input swipe 380 $CY 860 $CY 600
-sleep 3
-shot 03-back
 
-# 4: 9일 모은 상태에서 열기 → 1냥 달성 축하
+# 3: 9일 모은 상태에서 열기 → 1냥 달성 축하
 seed 9
 launch
 adb shell input tap $CX $CY
 sleep 4.6
 shot 04-nyang
+
+# 4: 뒷면 (천천히 끌어서 돌리기)
+seed 12
+launch
+adb shell input tap $CX $CY
+sleep 7
+adb shell input swipe 420 $CY 880 $CY 1500
+sleep 3
+shot 03-back
 
 ls -la "$OUT"
