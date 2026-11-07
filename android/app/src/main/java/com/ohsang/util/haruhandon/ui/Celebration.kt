@@ -96,6 +96,7 @@ fun NyangCelebration(info: CelebrationInfo, onDismiss: () -> Unit, modifier: Mod
         contentAlignment = Alignment.Center,
     ) {
         val heightPx = constraints.maxHeight.toFloat()
+        val widthDp = maxWidth.value
 
         Canvas(Modifier.fillMaxSize()) {
             val c = Offset(size.width / 2, size.height * 0.45f)
@@ -120,7 +121,7 @@ fun NyangCelebration(info: CelebrationInfo, onDismiss: () -> Unit, modifier: Mod
         }
 
         Box(Modifier.fillMaxSize()) {
-            bars.forEach { FallingBar(it, maxWidth.value, heightPx) }
+            bars.forEach { FallingBar(it, widthDp, heightPx) }
         }
 
         Column(
