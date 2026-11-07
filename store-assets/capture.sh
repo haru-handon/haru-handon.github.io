@@ -20,6 +20,13 @@ demo battery -e level 100 -e plugged false
 demo network -e wifi show -e level 4 -e mobile show -e datatype none -e level 4
 demo notifications -e visible false
 
+# 에뮬레이터 런처의 '응답 없음' 창이 화면을 가리지 않게
+adb shell settings put global hide_error_dialogs 1
+adb shell settings put global anr_show_background 0
+sleep 25
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
+adb shell input keyevent KEYCODE_HOME
+
 adb install -r "$APK"
 adb shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS || true
 
@@ -48,8 +55,11 @@ seed() {
 }
 
 launch() {
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am start -W -n "$PKG/.MainActivity" >/dev/null
-  sleep 4
+  sleep 5
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
+  sleep 1
 }
 
 shot() {
