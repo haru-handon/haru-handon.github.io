@@ -96,4 +96,18 @@ adb shell input swipe 420 $CY 880 $CY 1500
 sleep 3
 shot 03-back
 
+# 5~6: 돌리는 도중 (손을 떼지 않은 채로) 두께 확인
+seed 12
+launch
+adb shell input tap $CX $CY
+sleep 7
+adb shell input motionevent DOWN 420 $CY
+for x in 450 480 510 540 570 600; do adb shell input motionevent MOVE $x $CY; done
+sleep 0.6
+shot 05-turning
+for x in 640 680 720 760; do adb shell input motionevent MOVE $x $CY; done
+sleep 0.6
+shot 06-edge
+adb shell input motionevent UP 760 $CY
+
 ls -la "$OUT"

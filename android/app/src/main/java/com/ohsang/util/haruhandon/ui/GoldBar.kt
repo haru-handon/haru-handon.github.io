@@ -41,7 +41,9 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
@@ -69,11 +71,6 @@ import kotlin.math.sin
 private const val W = 200f
 private const val H = 300f
 
-/** 판 두께 (옆면이 보일 때 최대 폭) */
-private const val THICK = 22f
-
-/** 아래쪽으로 보이는 두께 */
-private const val BOTTOM = 10f
 
 /** 골드바의 회전·흔들림·반짝임 상태 */
 @Stable
@@ -191,73 +188,63 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
     Box(
         modifier
             .aspectRatio(W / H)
-            .graphicsLayer {
-                rotationX = motion.swayX
-                cameraDistance = 16f * density
-            }
             .drawWithCache {
                 val s = size.width / W
                 val front = renderFace(measurer, s, don, back = false)
                 val back = renderFace(measurer, s, don, back = true)
                 val plate = Path().apply { addRoundRect(RoundRect(0f, 0f, W, H, CornerRadius(14f))) }
                 val dimFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.1f) })
+                val src = floatArrayOf(0f, 0f, W * s, 0f, W * s, H * s, 0f, H * s)
+                val faceMatrix = android.graphics.Matrix()
+                val quad = Path()
 
                 onDrawBehind {
-                    /*
-                     * 두께가 있는 판을 세로축으로 돌린 모습을 직접 그린다.
-                     * 앞면 중심은 (T/2)·sinθ 만큼 옆으로 밀리고 폭은 W·|cosθ|,
-                     * 옆면은 폭 T·|sinθ| 로 앞면 바로 옆에 붙어 보인다.
-                     */
-                    val rad = Math.toRadians(motion.totalY.toDouble())
-                    val c = cos(rad).toFloat()
-                    val sn = sin(rad).toFloat()
-                    val isBack = c < 0f
-                    val ac = abs(c).coerceAtLeast(0.002f)
-                    val cx = W / 2f
-                    val faceCx = cx + THICK / 2f * sn
-                    val faceHalf = W / 2f * ac
-                    val sideW = THICK * abs(sn)
+                    val cam = Slab(
+                        yawDeg = motion.totalY + REST_YAW,
+                        pitchDeg = REST_PITCH + motion.swayX,
+                        pxPerUnit = s,
+                        origin = center,
+                    )
+                    val half = THICK / 2f
 
-                    scale(s, s, pivot = Offset.Zero) {
-                        if (sideW > 0.3f) {
-                            // sinθ<0 이면 오른쪽 옆면, sinθ>0 이면 왼쪽 옆면이 보인다
-                            val sideCx = cx + if (sn < 0f) W / 2f * c else -W / 2f * c
-                            val l = sideCx - sideW / 2f
-                            val r = sideCx + sideW / 2f
-                            val lit = sideCx < faceCx
-                            val brush = if (lit) {
-                                Brush.horizontalGradient(
-                                    0f to Color(0xFFC08A24), 0.6f to Color(0xFFEFCB6E), 1f to Color(0xFFF8DE92),
-                                    startX = l, endX = r,
-                                )
-                            } else {
-                                Brush.horizontalGradient(
-                                    0f to Color(0xFFA36F14), 0.5f to Color(0xFF8A5C0E), 1f to Color(0xFF5E3D06),
-                                    startX = l, endX = r,
-                                )
-                            }
-                            drawRoundRect(
-                                brush, Offset(l, 0f), Size(sideW, H + BOTTOM),
-                                CornerRadius(min(sideW / 2f, 12f), 12f),
-                            )
-                            // 모서리 하이라이트
-                            val edgeX = if (lit) l + 0.6f else r - 0.6f
-                            drawLine(Color(0x66FFF6D2), Offset(edgeX, 10f), Offset(edgeX, H + BOTTOM - 10f), 1f)
-                        }
-                        // 아래쪽 두께
-                        drawRoundRect(
-                            Brush.verticalGradient(0f to Color(0xFFA8741A), 1f to Color(0xFF5E3D06), startY = H - 14f, endY = H + BOTTOM),
-                            Offset(faceCx - faceHalf, H - 14f), Size(faceHalf * 2f, 14f + BOTTOM),
-                            CornerRadius(min(14f * ac, faceHalf), 14f),
-                        )
+                    // 1) 옆면: 둥근 테두리를 따라 이어진 면들 중 카메라를 향한 것만, 방향에 따라 빛을 계산
+                    val n = OUTLINE.size
+                    for (i in 0 until n) {
+                        val p0 = OUTLINE[i]
+                        val p1 = OUTLINE[(i + 1) % n]
+                        val tx = p1.x - p0.x
+                        val ty = p1.y - p0.y
+                        val len = kotlin.math.sqrt(tx * tx + ty * ty)
+                        if (len < 1e-3f) continue
+                        val nx = ty / len
+                        val ny = -tx / len
+                        if (!cam.facesCamera(nx, ny, 0f, (p0.x + p1.x) / 2f, (p0.y + p1.y) / 2f, 0f)) continue
+                        val a = cam.project(p0.x, p0.y, half)
+                        val b = cam.project(p1.x, p1.y, half)
+                        val c = cam.project(p1.x, p1.y, -half)
+                        val d = cam.project(p0.x, p0.y, -half)
+                        quad.reset()
+                        quad.moveTo(a.x, a.y); quad.lineTo(b.x, b.y); quad.lineTo(c.x, c.y); quad.lineTo(d.x, d.y); quad.close()
+                        val col = cam.edgeColor(nx, ny, 0f, dim)
+                        drawPath(quad, col)
+                        drawPath(quad, col, style = Stroke(1.2f)) // 면 사이 틈 메우기
                     }
 
-                    // 앞면 또는 뒷면 (뒷면도 글자가 바로 읽히게 그대로 그린다)
-                    withTransform({
-                        translate(left = (faceCx - faceHalf) * s)
-                        scale(ac, 1f, pivot = Offset.Zero)
-                    }) {
-                        drawImage(if (isBack) back else front, colorFilter = if (dim) dimFilter else null)
+                    // 2) 카메라를 향한 큰 면(앞 또는 뒤)에 그림을 원근 변형으로 입힌다
+                    val showFront = cam.facesCamera(0f, 0f, 1f, 0f, 0f, half)
+                    val z = if (showFront) half else -half
+                    // 뒷면은 뒤에서 보므로 그림의 왼쪽이 판의 +x 쪽에 온다
+                    val xl = if (showFront) -W / 2f else W / 2f
+                    val xr = -xl
+                    val tl = cam.project(xl, -H / 2f, z)
+                    val tr = cam.project(xr, -H / 2f, z)
+                    val br = cam.project(xr, H / 2f, z)
+                    val bl = cam.project(xl, H / 2f, z)
+                    val dst = floatArrayOf(tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y)
+                    if (faceMatrix.setPolyToPoly(src, 0, dst, 0, 4)) {
+                        // 원근(perspective) 행렬은 안드로이드 캔버스에 직접 건다
+                        drawIntoCanvas { it.nativeCanvas.save(); it.nativeCanvas.concat(faceMatrix) }
+                        drawImage(if (showFront) front else back, colorFilter = if (dim) dimFilter else null)
                         scale(s, s, pivot = Offset.Zero) {
                             clipPath(plate) {
                                 if (dim) {
@@ -267,10 +254,111 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
                                 }
                             }
                         }
+                        drawIntoCanvas { it.nativeCanvas.restore() }
                     }
                 }
             }
     )
+}
+
+/* ---------- 3D 판 (원근 투영) ---------- */
+
+/** 판 두께 (설계 좌표, 폭 200 기준) */
+private const val THICK = 30f
+
+/** 카메라까지 거리. 작을수록 원근이 세다 */
+private const val CAM_DIST = 900f
+
+/** 가만히 있을 때 살짝 비스듬히, 살짝 위에서 내려다보게 */
+private const val REST_YAW = -16f
+private const val REST_PITCH = -10f
+
+/** 둥근 모서리 사각형 테두리 (판 중심 기준, 화면 좌표처럼 y는 아래로, 시계 방향) */
+private val OUTLINE: List<Offset> = run {
+    val r = 14f
+    val hw = W / 2f
+    val hh = H / 2f
+    val seg = 6
+    val corners = listOf(
+        Offset(-hw + r, -hh + r) to 180f,
+        Offset(hw - r, -hh + r) to 270f,
+        Offset(hw - r, hh - r) to 0f,
+        Offset(-hw + r, hh - r) to 90f,
+    )
+    buildList {
+        corners.forEach { (c, start) ->
+            for (k in 0..seg) {
+                val a = Math.toRadians((start + 90f * k / seg).toDouble())
+                add(Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat()))
+            }
+        }
+    }
+}
+
+private val EdgeDark = Color(0xFF4E3305)
+private val EdgeLight = Color(0xFFFBE3A0)
+
+/** 세로축(yaw) → 가로축(pitch) 순으로 돌리고 원근 투영한다 */
+private class Slab(yawDeg: Float, pitchDeg: Float, private val pxPerUnit: Float, private val origin: Offset) {
+    private val cy = cos(Math.toRadians(yawDeg.toDouble())).toFloat()
+    private val sy = sin(Math.toRadians(yawDeg.toDouble())).toFloat()
+    private val cp = cos(Math.toRadians(pitchDeg.toDouble())).toFloat()
+    private val sp = sin(Math.toRadians(pitchDeg.toDouble())).toFloat()
+
+    private fun rx(x: Float, z: Float) = x * cy + z * sy
+    private fun rz1(x: Float, z: Float) = -x * sy + z * cy
+    private fun ry(y: Float, z1: Float) = y * cp - z1 * sp
+    private fun rz(y: Float, z1: Float) = y * sp + z1 * cp
+
+    fun project(x: Float, y: Float, z: Float): Offset {
+        val x1 = rx(x, z)
+        val z1 = rz1(x, z)
+        val y2 = ry(y, z1)
+        val z2 = rz(y, z1)
+        val k = CAM_DIST / (CAM_DIST - z2)
+        return Offset(origin.x + x1 * k * pxPerUnit, origin.y + y2 * k * pxPerUnit)
+    }
+
+    /** 면의 바깥 방향 (nx,ny,nz)이 점 (px,py,pz)에서 카메라 쪽을 보는지 */
+    fun facesCamera(nx: Float, ny: Float, nz: Float, px: Float, py: Float, pz: Float): Boolean {
+        val n = rotate(nx, ny, nz)
+        val p = rotate(px, py, pz)
+        return n[0] * (0f - p[0]) + n[1] * (0f - p[1]) + n[2] * (CAM_DIST - p[2]) > 0f
+    }
+
+    /** 왼쪽 위 앞에서 오는 빛 + 반짝임 */
+    fun edgeColor(nx: Float, ny: Float, nz: Float, dim: Boolean): Color {
+        val n = rotate(nx, ny, nz)
+        val diffuse = (n[0] * LX + n[1] * LY + n[2] * LZ).coerceAtLeast(0f)
+        val spec = (n[0] * HX + n[1] * HY + n[2] * HZ).coerceAtLeast(0f).let { it * it * it * it * it * it * it * it }
+        val t = (0.18f + 0.82f * diffuse).coerceIn(0f, 1f)
+        var col = lerp(EdgeDark, EdgeLight, t)
+        col = lerp(col, Color.White, (spec * 0.55f).coerceIn(0f, 1f))
+        if (dim) {
+            val g = (col.red * 0.3f + col.green * 0.59f + col.blue * 0.11f) * 0.5f
+            col = Color(g, g, g)
+        }
+        return col
+    }
+
+    private fun rotate(x: Float, y: Float, z: Float): FloatArray {
+        val x1 = rx(x, z)
+        val z1 = rz1(x, z)
+        return floatArrayOf(x1, ry(y, z1), rz(y, z1))
+    }
+
+    private companion object {
+        // 빛 방향 (화면 기준 왼쪽 위 앞), 반사광용 중간 벡터
+        private val L = normalize(-0.45f, -0.65f, 0.62f)
+        val LX = L[0]; val LY = L[1]; val LZ = L[2]
+        private val Hv = normalize(LX, LY, LZ + 1f)
+        val HX = Hv[0]; val HY = Hv[1]; val HZ = Hv[2]
+
+        fun normalize(x: Float, y: Float, z: Float): FloatArray {
+            val l = kotlin.math.sqrt(x * x + y * y + z * z)
+            return floatArrayOf(x / l, y / l, z / l)
+        }
+    }
 }
 
 /* ---------- 고정된 면 그림 ---------- */
