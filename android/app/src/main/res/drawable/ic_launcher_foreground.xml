@@ -17,6 +17,7 @@
         </aapt:attr>
     </path>
 
+    <group android:pivotX="54" android:pivotY="55" android:scaleX="1.18" android:scaleY="1.18">
     <!-- 두께 -->
     <path android:pathData="M42,32 H70 A4,4 0 0 1 74,36 V78 A4,4 0 0 1 70,82 H42 A4,4 0 0 1 38,78 V36 A4,4 0 0 1 42,32 Z">
         <aapt:attr name="android:fillColor">
@@ -72,4 +73,5 @@
     <path
         android:fillColor="#33FFFFFF"
         android:pathData="M58,30 H64 L46,80 H40 Z" />
+    </group>
 </vector>

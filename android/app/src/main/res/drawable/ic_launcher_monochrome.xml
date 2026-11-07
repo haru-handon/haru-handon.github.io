@@ -5,6 +5,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="55" android:scaleX="1.18" android:scaleY="1.18">
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="evenOdd"
@@ -12,4 +13,5 @@
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M54,38 A6,6 0 1 1 53.99,38 Z M45,55 H63 V57.8 H45 Z M44,62 H64 V62.8 H44 Z M47,67 H61 V69.8 H47 Z" />
+    </group>
 </vector>

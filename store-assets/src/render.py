@@ -16,8 +16,8 @@ html,body{{margin:0;width:512px;height:512px;overflow:hidden;background:#1e2125}
 <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#000" flood-opacity=".55"/></filter>
 </defs>
 <rect width="512" height="512" fill="url(#bg)"/>
-<circle cx="256" cy="250" r="210" fill="url(#halo)"/>
-<g transform="translate(150 84) scale(1.06)" filter="url(#sh)">{bar_group(yaw_deg=-16)}</g>
+<circle cx="256" cy="256" r="236" fill="url(#halo)"/>
+<g transform="translate(118 46) scale(1.34)" filter="url(#sh)">{bar_group(yaw_deg=-16)}</g>
 </svg></body></html>"""
 
 FEATURE = f"""<!doctype html><html><head><meta charset="utf-8"><style>
