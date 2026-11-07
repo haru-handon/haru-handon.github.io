@@ -6,14 +6,16 @@
 
 - 개발: 오상플레이
 - 패키지명 / 번들 ID: `com.ohsang.util.haruhandon`
-- 소개 페이지: https://haru-handon.github.io (예정: haru-handon.ohsangplay.com)
+- 소개 페이지: https://haru-handon.ohsangplay.com
+- 개인정보처리방침: https://haru-handon.ohsangplay.com/privacy.html
+- 이용약관: https://haru-handon.ohsangplay.com/terms.html
 - 광고: 첫 출시는 광고 없음 (추후 "출석 복구" 보상형 광고만 검토)
 
 ## 저장소 구성
 
 | 경로 | 내용 |
 | --- | --- |
-| `index.html`, `privacy.html` | GitHub Pages 소개 페이지와 개인정보처리방침 |
+| `index.html`, `privacy.html`, `terms.html` | 소개 페이지, 개인정보처리방침, 이용약관 (GitHub Pages, `CNAME` = haru-handon.ohsangplay.com) |
 | `design/prototype.html` | 화면·애니메이션 기준이 되는 HTML 프로토타입 |
 | `android/` | Android 앱 (Kotlin, Jetpack Compose, Glance 위젯) |
 | `ios/` | iOS 앱 (SwiftUI, WidgetKit) — Android 이후 작업 |
