@@ -33,7 +33,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         store = HandonStore(this)
-        if (!BuildConfig.DEBUG && store.debugOffsetDays != 0) store.debugOffsetDays = 0
         sfx = Sfx(this).apply { enabled = store.soundOn }
 
         DailyReminder.ensureChannel(this)

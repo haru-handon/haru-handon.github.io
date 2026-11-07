@@ -52,7 +52,7 @@ cd android
 - Gradle 8.13 래퍼가 들어 있어 처음 동기화할 때 Gradle을 자동으로 받습니다.
 - 알림 아이콘·앱 아이콘·골드바 그림은 모두 벡터(`res/drawable`)이고, 효과음은 `res/raw`의 합성 wav입니다.
 - 라이브러리 버전은 `gradle/libs.versions.toml`에 모여 있습니다. Android Studio가 업그레이드를 제안하면 따라도 됩니다.
-- 디버그 빌드에는 화면 아래에 테스트용 버튼(다음 날, 다음 냥 직전, 초기화)이 나옵니다. 릴리스 빌드에는 나오지 않습니다.
+- main에 push하면 GitHub Actions가 디버그 APK를 빌드해 Releases의 `debug-latest`에 올립니다.
 
 ## 할 일
 

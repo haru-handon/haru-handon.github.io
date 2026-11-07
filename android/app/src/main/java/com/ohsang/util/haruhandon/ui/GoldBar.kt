@@ -54,7 +54,9 @@ import com.ohsang.util.haruhandon.data.donLabel
 import com.ohsang.util.haruhandon.data.gramLabel
 import com.ohsang.util.haruhandon.data.serialLabel
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.min
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -66,6 +68,12 @@ import kotlin.math.sin
 
 private const val W = 200f
 private const val H = 300f
+
+/** 판 두께 (옆면이 보일 때 최대 폭) */
+private const val THICK = 22f
+
+/** 아래쪽으로 보이는 두께 */
+private const val BOTTOM = 10f
 
 /** 골드바의 회전·흔들림·반짝임 상태 */
 @Stable
@@ -184,7 +192,6 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
         modifier
             .aspectRatio(W / H)
             .graphicsLayer {
-                rotationY = motion.totalY
                 rotationX = motion.swayX
                 cameraDistance = 16f * density
             }
@@ -196,9 +203,60 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
                 val dimFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.1f) })
 
                 onDrawBehind {
-                    val isBack = motion.showingBack
-                    // 뒷면은 180° 돌아 거울상으로 보이므로 미리 좌우를 뒤집어 그린다
-                    scale(if (isBack) -1f else 1f, 1f, pivot = center) {
+                    /*
+                     * 두께가 있는 판을 세로축으로 돌린 모습을 직접 그린다.
+                     * 앞면 중심은 (T/2)·sinθ 만큼 옆으로 밀리고 폭은 W·|cosθ|,
+                     * 옆면은 폭 T·|sinθ| 로 앞면 바로 옆에 붙어 보인다.
+                     */
+                    val rad = Math.toRadians(motion.totalY.toDouble())
+                    val c = cos(rad).toFloat()
+                    val sn = sin(rad).toFloat()
+                    val isBack = c < 0f
+                    val ac = abs(c).coerceAtLeast(0.002f)
+                    val cx = W / 2f
+                    val faceCx = cx + THICK / 2f * sn
+                    val faceHalf = W / 2f * ac
+                    val sideW = THICK * abs(sn)
+
+                    scale(s, s, pivot = Offset.Zero) {
+                        if (sideW > 0.3f) {
+                            // sinθ<0 이면 오른쪽 옆면, sinθ>0 이면 왼쪽 옆면이 보인다
+                            val sideCx = cx + if (sn < 0f) W / 2f * c else -W / 2f * c
+                            val l = sideCx - sideW / 2f
+                            val r = sideCx + sideW / 2f
+                            val lit = sideCx < faceCx
+                            val brush = if (lit) {
+                                Brush.horizontalGradient(
+                                    0f to Color(0xFFC08A24), 0.6f to Color(0xFFEFCB6E), 1f to Color(0xFFF8DE92),
+                                    startX = l, endX = r,
+                                )
+                            } else {
+                                Brush.horizontalGradient(
+                                    0f to Color(0xFFA36F14), 0.5f to Color(0xFF8A5C0E), 1f to Color(0xFF5E3D06),
+                                    startX = l, endX = r,
+                                )
+                            }
+                            drawRoundRect(
+                                brush, Offset(l, 0f), Size(sideW, H + BOTTOM),
+                                CornerRadius(min(sideW / 2f, 12f), 12f),
+                            )
+                            // 모서리 하이라이트
+                            val edgeX = if (lit) l + 0.6f else r - 0.6f
+                            drawLine(Color(0x66FFF6D2), Offset(edgeX, 10f), Offset(edgeX, H + BOTTOM - 10f), 1f)
+                        }
+                        // 아래쪽 두께
+                        drawRoundRect(
+                            Brush.verticalGradient(0f to Color(0xFFA8741A), 1f to Color(0xFF5E3D06), startY = H - 14f, endY = H + BOTTOM),
+                            Offset(faceCx - faceHalf, H - 14f), Size(faceHalf * 2f, 14f + BOTTOM),
+                            CornerRadius(min(14f * ac, faceHalf), 14f),
+                        )
+                    }
+
+                    // 앞면 또는 뒷면 (뒷면도 글자가 바로 읽히게 그대로 그린다)
+                    withTransform({
+                        translate(left = (faceCx - faceHalf) * s)
+                        scale(ac, 1f, pivot = Offset.Zero)
+                    }) {
                         drawImage(if (isBack) back else front, colorFilter = if (dim) dimFilter else null)
                         scale(s, s, pivot = Offset.Zero) {
                             clipPath(plate) {
@@ -233,9 +291,8 @@ private fun CacheDrawScope.measureText(
 )
 
 private fun CacheDrawScope.renderFace(measurer: TextMeasurer, s: Float, don: Int, back: Boolean): ImageBitmap {
-    // 오른쪽 아래 두께(5,6)까지 들어가게 조금 크게
-    val wPx = ceil((W + 6f) * s).toInt().coerceAtLeast(1)
-    val hPx = ceil((H + 7f) * s).toInt().coerceAtLeast(1)
+    val wPx = ceil(W * s).toInt().coerceAtLeast(1)
+    val hPx = ceil(H * s).toInt().coerceAtLeast(1)
     val bmp = ImageBitmap(wPx, hPx)
 
     val texts: List<Engr>
@@ -303,13 +360,8 @@ private val BevelInBrush = Brush.linearGradient(
     0f to Color(0xFFFFF6D2), 0.5f to Color(0xFFC8952E), 1f to Color(0xFF5F3F08),
     start = Offset(W, H), end = Offset(0f, 0f),
 )
-private val EdgeBrush = Brush.linearGradient(
-    0f to Color(0xFF7A520C), 0.5f to Color(0xFFC18A1F), 1f to Color(0xFF5B3C07),
-    start = Offset(5f, 0f), end = Offset(W + 5f, 0f),
-)
 
 private fun DrawScope.drawPlate() {
-    drawRoundRect(EdgeBrush, Offset(5f, 6f), Size(W, H), CornerRadius(14f))
     drawRoundRect(PlateBrush, Offset.Zero, Size(W, H), CornerRadius(14f))
     drawRoundRect(Color(0x99FFF7D8), Offset(1f, 1f), Size(198f, 298f), CornerRadius(13.5f), style = Stroke(1f))
     drawRoundRect(BevelBrush, Offset(11f, 11f), Size(178f, 278f), CornerRadius(8f), style = Stroke(3f))

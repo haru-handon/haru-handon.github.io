@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohsang.util.haruhandon.BuildConfig
 import com.ohsang.util.haruhandon.data.Fortunes
 import com.ohsang.util.haruhandon.data.HandonStore
 import com.ohsang.util.haruhandon.data.donLabel
@@ -231,21 +230,6 @@ fun HomeScreen(
         }
     }
 
-    /** 디버그 버튼: 금고를 바로 닫고 상태를 다시 읽는다 */
-    fun debug(action: () -> Unit, message: String) {
-        scope.launch {
-            lift.snapTo(0f); door.snapTo(0f); dial.snapTo(0f); lever.snapTo(0f)
-            flash.snapTo(0f); plus.snapTo(-1f)
-            motion.reset()
-            celebration = null
-            fortuneVisible = false
-            phase = Phase.Closed
-            action()
-            reload()
-            refreshWidgets()
-            toast = ToastMsg(message)
-        }
-    }
 
     val tier = tierIndex(shownDon)
 
@@ -298,17 +282,6 @@ fun HomeScreen(
             FortuneCard(today, fortuneVisible)
             Foot(open = phase == Phase.Open, onClose = ::closeVault)
 
-            if (BuildConfig.DEBUG) {
-                DebugRow(
-                    onNextDay = { debug({ store.debugOffsetDays += 1 }, "다음 날 아침이에요. 금고를 열어보세요.") },
-                    onSkipDay = { debug({ store.debugOffsetDays += 2 }, "하루를 걸렀어요. 연속 출석이 끊겼어요.") },
-                    onBeforeNyang = {
-                        val target = (store.totalDon() / 10 + 1) * 10 - 1
-                        debug({ store.debugFillDays(target) }, "${donLabel(target)} 상태예요. 금고를 열어 채워보세요.")
-                    },
-                    onReset = { debug({ store.debugReset() }, "처음 상태로 돌렸어요.") },
-                )
-            }
         }
 
         celebration?.let { info ->
@@ -474,28 +447,5 @@ private fun Foot(open: Boolean, onClose: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
         }
-    }
-}
-
-@Composable
-private fun DebugRow(onNextDay: () -> Unit, onSkipDay: () -> Unit, onBeforeNyang: () -> Unit, onReset: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        listOf("다음 날" to onNextDay, "하루 건너뛰기" to onSkipDay, "다음 냥 직전" to onBeforeNyang, "초기화" to onReset)
-            .forEach { (label, action) ->
-                Text(
-                    label,
-                    color = Palette.Muted,
-                    fontSize = 11.sp,
-                    modifier = Modifier
-                        .border(1.dp, Palette.Line, RoundedCornerShape(8.dp))
-                        .clickable(onClick = action)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                )
-            }
     }
 }

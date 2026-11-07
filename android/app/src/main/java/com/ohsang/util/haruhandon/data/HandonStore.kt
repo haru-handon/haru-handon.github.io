@@ -12,11 +12,6 @@ class HandonStore(context: Context) {
 
     private val prefs = context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** 디버그 빌드 테스트용 날짜 이동 (릴리스에서는 늘 0) */
-    var debugOffsetDays: Int
-        get() = prefs.getInt(KEY_DEBUG_OFFSET, 0)
-        set(value) = prefs.edit { putInt(KEY_DEBUG_OFFSET, value) }
-
     var soundOn: Boolean
         get() = prefs.getBoolean(KEY_SOUND, true)
         set(value) = prefs.edit { putBoolean(KEY_SOUND, value) }
@@ -25,7 +20,7 @@ class HandonStore(context: Context) {
         get() = prefs.getBoolean(KEY_NOTIFY_ASKED, false)
         set(value) = prefs.edit { putBoolean(KEY_NOTIFY_ASKED, value) }
 
-    fun today(): LocalDate = LocalDate.now().plusDays(debugOffsetDays.toLong())
+    fun today(): LocalDate = LocalDate.now()
 
     fun days(): Set<String> = prefs.getStringSet(KEY_DAYS, emptySet())?.toSet() ?: emptySet()
 
@@ -55,25 +50,11 @@ class HandonStore(context: Context) {
         return n
     }
 
-    /** 디버그용: 어제까지 연속으로 [count]일 출석한 상태로 맞춤 */
-    fun debugFillDays(count: Int) {
-        val t = today()
-        val set = (1..count).map { t.minusDays(it.toLong()).toString() }.toSet()
-        prefs.edit { putStringSet(KEY_DAYS, set) }
-    }
-
-    fun debugReset() {
-        prefs.edit {
-            remove(KEY_DAYS)
-            putInt(KEY_DEBUG_OFFSET, 0)
-        }
-    }
 
     companion object {
         const val FILE = "handon"
         private const val KEY_DAYS = "attended_days"
         private const val KEY_SOUND = "sound_on"
         private const val KEY_NOTIFY_ASKED = "notify_asked"
-        private const val KEY_DEBUG_OFFSET = "debug_offset_days"
     }
 }
