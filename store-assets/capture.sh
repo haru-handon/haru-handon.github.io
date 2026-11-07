@@ -84,7 +84,7 @@ shot 02-open
 seed 9
 launch
 adb shell input tap $CX $CY
-sleep 4.6
+sleep 7.5
 shot 04-nyang
 
 # 4: 뒷면 (천천히 끌어서 돌리기)
