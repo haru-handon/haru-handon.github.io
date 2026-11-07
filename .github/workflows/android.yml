@@ -12,6 +12,9 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,3 +41,29 @@ jobs:
           name: haru-handon-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      # 휴대폰에서 바로 받을 수 있게 Releases의 "debug-latest"에 최신 APK를 올린다
+      - name: 최신 디버그 APK를 Releases에 올리기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk haru-handon-debug.apk
+          gh release delete debug-latest --yes --cleanup-tag || true
+          gh release create debug-latest haru-handon-debug.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "하루 한돈 디버그 빌드 (최신)" \
+            --notes "커밋 ${GITHUB_SHA::7} 기준 자동 빌드. 테스트용 디버그 APK입니다."
+
+      # 빌드 결과를 builds 브랜치에도 남긴다 (git으로 받아볼 수 있게)
+      - name: builds 브랜치에 APK 저장
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/builds && cp haru-handon-debug.apk /tmp/builds/
+          cd /tmp/builds
+          git init -q -b builds
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add . && git commit -q -m "debug APK ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" builds
