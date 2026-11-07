@@ -7,6 +7,12 @@ on:
       - "android/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
+    inputs:
+      play_track:
+        description: "Play 스토어에 올리기 (첫 AAB는 Play Console에서 직접 올려야 해요)"
+        type: choice
+        options: [none, internal, alpha]
+        default: none
 
 concurrency:
   group: android-${{ github.ref }}
@@ -21,6 +27,8 @@ jobs:
     defaults:
       run:
         working-directory: android
+    env:
+      VERSION_CODE: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,35 +43,91 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
+          mkdir -p ../out
+          cp app/build/outputs/apk/debug/app-debug.apk ../out/haru-handon-debug.apk
+
+      - name: 업로드 키 준비
+        id: key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "### ⚠️ 업로드 키 Secrets가 없어 디버그 APK만 만들었어요" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          echo "has_key=true" >> "$GITHUB_OUTPUT"
+
+      # 키가 없어도 릴리스 빌드(R8 축소 포함)가 되는지는 늘 확인한다
+      - name: 릴리스 AAB 빌드 (업로드 키로 서명)
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease --stacktrace
+          [ "${{ steps.key.outputs.has_key }}" = "true" ] || exit 0
+          cp app/build/outputs/bundle/release/app-release.aab "../out/haru-handon-${VERSION_CODE}.aab"
+          ALIAS="${ANDROID_KEY_ALIAS:-upload}"
+          {
+            echo "### 업로드 키로 서명해요 (버전 코드 ${VERSION_CODE})"
+            echo '```'
+            keytool -list -v -keystore "$ANDROID_KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ALIAS" | grep -E "SHA1:|SHA256:"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: haru-handon-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: haru-handon-android-${{ github.run_number }}
+          path: out/*
           retention-days: 14
 
-      # 휴대폰에서 바로 받을 수 있게 Releases의 "debug-latest"에 최신 APK를 올린다
+      # 휴대폰에서 바로 받을 수 있게 Releases의 "debug-latest"에 최신 디버그 APK를 올린다
       - name: 최신 디버그 APK를 Releases에 올리기
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk haru-handon-debug.apk
           gh release delete debug-latest --yes --cleanup-tag || true
-          gh release create debug-latest haru-handon-debug.apk \
+          gh release create debug-latest ../out/haru-handon-debug.apk \
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "하루 한돈 디버그 빌드 (최신)" \
             --notes "커밋 ${GITHUB_SHA::7} 기준 자동 빌드. 테스트용 디버그 APK입니다."
 
-      # 빌드 결과를 builds 브랜치에도 남긴다 (git으로 받아볼 수 있게)
-      - name: builds 브랜치에 APK 저장
+      # 빌드 결과(APK, AAB)를 builds 브랜치에도 남긴다 (git으로 받아볼 수 있게)
+      - name: builds 브랜치에 결과 저장
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p /tmp/builds && cp haru-handon-debug.apk /tmp/builds/
+          mkdir -p /tmp/builds && cp ../out/* /tmp/builds/
           cd /tmp/builds
           git init -q -b builds
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add . && git commit -q -m "debug APK ${GITHUB_SHA::7}"
+          git add . && git commit -q -m "build ${VERSION_CODE} (${GITHUB_SHA::7})"
           git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" builds
+
+      - name: Play 업로드 준비
+        id: play
+        if: github.event_name == 'workflow_dispatch' && inputs.play_track != 'none' && steps.key.outputs.has_key == 'true'
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_JSON" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "### ⚠️ PLAY_SERVICE_ACCOUNT_JSON이 없어 Play 업로드를 건너뛰었어요" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Play 스토어에 올리기
+        if: steps.play.outputs.ok == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.ohsang.util.haruhandon
+          releaseFiles: out/haru-handon-${{ github.run_number }}.aab
+          track: ${{ inputs.play_track }}
+          status: completed
