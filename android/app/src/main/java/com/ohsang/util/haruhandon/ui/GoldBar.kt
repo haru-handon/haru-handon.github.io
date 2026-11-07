@@ -226,8 +226,15 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
                         quad.reset()
                         quad.moveTo(a.x, a.y); quad.lineTo(b.x, b.y); quad.lineTo(c.x, c.y); quad.lineTo(d.x, d.y); quad.close()
                         val col = cam.edgeColor(nx, ny, 0f, dim)
-                        drawPath(quad, col)
-                        drawPath(quad, col, style = Stroke(1.2f)) // 면 사이 틈 메우기
+                        // 면을 따라 밝은 쪽 → 어두운 쪽으로 살짝 흐르게 해서 금속 느낌을 낸다
+                        val brush = Brush.linearGradient(
+                            0f to lerp(col, Color(0xFFFFF0C0), 0.12f),
+                            1f to lerp(col, EdgeDark, 0.22f),
+                            start = Offset((a.x + d.x) / 2f, (a.y + d.y) / 2f),
+                            end = Offset((b.x + c.x) / 2f, (b.y + c.y) / 2f),
+                        )
+                        drawPath(quad, brush)
+                        drawPath(quad, brush, style = Stroke(1.2f)) // 면 사이 틈 메우기
                     }
 
                     // 2) 카메라를 향한 큰 면(앞 또는 뒤)에 그림을 원근 변형으로 입힌다
@@ -295,8 +302,8 @@ private val OUTLINE: List<Offset> = run {
     }
 }
 
-private val EdgeDark = Color(0xFF4E3305)
-private val EdgeLight = Color(0xFFFBE3A0)
+private val EdgeDark = Color(0xFF573805)
+private val EdgeLight = Color(0xFFEDC152)
 
 /** 세로축(yaw) → 가로축(pitch) 순으로 돌리고 원근 투영한다 */
 private class Slab(yawDeg: Float, pitchDeg: Float, private val pxPerUnit: Float, private val origin: Offset) {
@@ -333,7 +340,7 @@ private class Slab(yawDeg: Float, pitchDeg: Float, private val pxPerUnit: Float,
         val spec = (n[0] * HX + n[1] * HY + n[2] * HZ).coerceAtLeast(0f).let { it * it * it * it * it * it * it * it }
         val t = (0.18f + 0.82f * diffuse).coerceIn(0f, 1f)
         var col = lerp(EdgeDark, EdgeLight, t)
-        col = lerp(col, Color.White, (spec * 0.55f).coerceIn(0f, 1f))
+        col = lerp(col, Color(0xFFFFF4CF), (spec * 0.4f).coerceIn(0f, 1f))
         if (dim) {
             val g = (col.red * 0.3f + col.green * 0.59f + col.blue * 0.11f) * 0.5f
             col = Color(g, g, g)

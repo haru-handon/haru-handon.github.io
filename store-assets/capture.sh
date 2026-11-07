@@ -111,3 +111,4 @@ shot 06-edge
 adb shell input motionevent UP 760 $CY
 
 ls -la "$OUT"
+# rerun 1794078871
