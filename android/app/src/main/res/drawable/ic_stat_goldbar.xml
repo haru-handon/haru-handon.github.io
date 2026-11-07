@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 상태 표시줄 알림 아이콘 (단색) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M8,2 H16 A2,2 0 0 1 18,4 V20 A2,2 0 0 1 16,22 H8 A2,2 0 0 1 6,20 V4 A2,2 0 0 1 8,2 Z M8,4 V20 H16 V4 Z M12,6 A2,2 0 1 1 11.99,6 Z M9.5,12 H14.5 V13.2 H9.5 Z M9.5,15 H14.5 V16.2 H9.5 Z" />
+</vector>

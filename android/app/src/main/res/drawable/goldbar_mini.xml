@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 위젯·알림·축하 화면에 쓰는 작은 압인 골드바 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="100dp"
+    android:height="150dp"
+    android:viewportWidth="104"
+    android:viewportHeight="154">
+
+    <!-- 두께 -->
+    <path android:pathData="M13,4 H94 A9,9 0 0 1 103,13 V144 A9,9 0 0 1 94,153 H13 A9,9 0 0 1 4,144 V13 A9,9 0 0 1 13,4 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="4" android:startY="0" android:endX="103" android:endY="0">
+                <item android:offset="0" android:color="#FF7A520C" />
+                <item android:offset="0.5" android:color="#FFC18A1F" />
+                <item android:offset="1" android:color="#FF5B3C07" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 판 -->
+    <path android:pathData="M9,0 H90 A9,9 0 0 1 99,9 V140 A9,9 0 0 1 90,149 H9 A9,9 0 0 1 0,140 V9 A9,9 0 0 1 9,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="99" android:endY="149">
+                <item android:offset="0" android:color="#FFFFF2C2" />
+                <item android:offset="0.16" android:color="#FFEBC25A" />
+                <item android:offset="0.3" android:color="#FFB7871F" />
+                <item android:offset="0.44" android:color="#FFF6DC8C" />
+                <item android:offset="0.58" android:color="#FFD7A538" />
+                <item android:offset="0.76" android:color="#FF9A6B14" />
+                <item android:offset="0.9" android:color="#FFD9AC45" />
+                <item android:offset="1" android:color="#FFF3D27A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 거울면 -->
+    <path
+        android:pathData="M12,6 H87 A6,6 0 0 1 93,12 V137 A6,6 0 0 1 87,143 H12 A6,6 0 0 1 6,137 V12 A6,6 0 0 1 12,6 Z"
+        android:strokeWidth="1.4"
+        android:strokeColor="#99FFF6D2">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="149" android:endX="99" android:endY="0">
+                <item android:offset="0" android:color="#FFB98523" />
+                <item android:offset="0.3" android:color="#FFE7BD55" />
+                <item android:offset="0.5" android:color="#FFFBE5A0" />
+                <item android:offset="0.68" android:color="#FFE2B44A" />
+                <item android:offset="1" android:color="#FFA7771B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 각인: 원형 마크, 999.9 자리, 구분선, 무게 자리 -->
+    <path
+        android:pathData="M49.5,20 A13,13 0 1 1 49.49,20 Z"
+        android:strokeWidth="2"
+        android:strokeColor="#FF9A6B14" />
+    <path
+        android:fillColor="#FF9A6B14"
+        android:pathData="M43,28 H56 V30 H43 Z M48.5,26 H50.5 V42 H48.5 Z M42,35 H57 V37 H42 Z M41,41 H58 V43 H41 Z" />
+    <path
+        android:fillColor="#B39A6B14"
+        android:pathData="M27,70 H72 A3,3 0 0 1 72,76 H27 A3,3 0 0 1 27,70 Z" />
+    <path
+        android:fillColor="#999A6B14"
+        android:pathData="M24,90 H75 V92 H24 Z" />
+    <path
+        android:fillColor="#8C9A6B14"
+        android:pathData="M33,104 H66 A3.5,3.5 0 0 1 66,111 H33 A3.5,3.5 0 0 1 33,104 Z" />
+    <path
+        android:fillColor="#669A6B14"
+        android:pathData="M37,124 H62 A2,2 0 0 1 62,128 H37 A2,2 0 0 1 37,124 Z" />
+
+    <!-- 반사광 -->
+    <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M58,0 H76 L30,149 H12 Z" />
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M82,0 H88 L42,149 H36 Z" />
+</vector>

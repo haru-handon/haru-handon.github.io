@@ -1,0 +1,775 @@
+<title>하루 한돈</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: phone prototype left, widget / notification previews and test controls right; stacks when narrow. Single dark look by choice (steel vault + one minted gold bar). */
+:root{
+  --ink:#101113; --panel:#1b1e22; --line:#2c3036;
+  --steel-hi:#5b626b;
+  --gold-hi:#fbe7a6; --gold:#dcae42; --gold-lo:#8a6316;
+  --text:#ede7d7; --muted:#9c9585; --faint:#6d685d;
+  --display:"Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+  --body:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ink);color:var(--text)}
+body{font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:40px 56px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+.wrap{display:grid;grid-template-columns:auto minmax(0,380px);gap:56px;justify-content:center;align-items:start;max-width:1000px;margin:0 auto}
+@media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr);justify-items:center;gap:40px}.side{width:100%;max-width:420px}}
+
+/* ---------- phone ---------- */
+.phone{width:min(360px,100%);max-width:100%;padding:10px;border-radius:48px;background:#060707;
+  box-shadow:0 0 0 1px #2a2d31, 0 40px 80px -20px rgba(0,0,0,.8), 0 0 120px -40px rgba(220,174,66,.25)}
+.screen{position:relative;aspect-ratio:9/19;border-radius:39px;overflow:hidden;display:flex;flex-direction:column;
+  background:radial-gradient(120% 60% at 50% 40%, #23262b 0%, var(--ink) 70%)}
+.screen.buzz{animation:buzz .32s linear}
+@keyframes buzz{0%,100%{transform:none}20%{transform:translateX(-2px)}40%{transform:translateX(2px)}60%{transform:translateX(-1.5px)}80%{transform:translateX(1px)}}
+.status{display:flex;justify-content:space-between;padding:14px 26px 0;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.status i{display:inline-block;width:22px;height:10px;border:1.5px solid var(--text);border-radius:3px;position:relative;vertical-align:-1px}
+.status i::after{content:"";position:absolute;inset:1.5px 5px 1.5px 1.5px;background:var(--text);border-radius:1px}
+
+.head{padding:16px 22px 0;display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.brand{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--gold-hi);line-height:1.1}
+.brand small{display:block;font-family:var(--body);font-size:11px;font-weight:400;color:var(--muted);letter-spacing:0;margin-top:4px}
+.weight{text-align:right;line-height:1.25}
+.weight b{display:block;font-family:var(--display);font-weight:800;font-size:24px;color:var(--gold-hi);font-variant-numeric:tabular-nums}
+.weight span{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tier{margin:10px 22px 0;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.tier .name{color:var(--gold);font-weight:600;white-space:nowrap}
+.meter{flex:1;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.meter span{display:block;height:100%;background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi));transition:width .6s ease}
+.tier .left{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0}
+
+/* ---------- safe ---------- */
+.safe{--rim:#5b626b;--door-hi:#4b5159;--door-lo:#24282d;
+  position:relative;width:84%;aspect-ratio:1/1.08;border-radius:16px;perspective:1000px;
+  background:linear-gradient(150deg,#41464e 0%,#262a2f 55%,#1a1d21 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 2px #15171a, 0 26px 40px -10px rgba(0,0,0,.75)}
+.safe[data-tier="brass"]{--rim:#a9823d;--door-hi:#4f4a40;--door-lo:#26231d}
+.safe[data-tier="gold"]{--rim:#dcae42;--door-hi:#5a4c2c;--door-lo:#2a2213}
+.safe[data-tier="grand"]{--rim:#fbe7a6;--door-hi:#7a6331;--door-lo:#3a2c10}
+.safe::after{content:"";position:absolute;left:10%;right:10%;bottom:-9px;height:9px;
+  background:linear-gradient(90deg,#15171a 0 14%,transparent 14% 86%,#15171a 86%);border-radius:0 0 4px 4px}
+.hinge{position:absolute;left:-5px;width:9px;height:13%;border-radius:3px;background:linear-gradient(90deg,#1b1e22,#4d535b,#1b1e22);z-index:5}
+.hinge.t{top:16%}.hinge.b{bottom:16%}
+.interior{position:absolute;inset:7.5%;border-radius:9px;overflow:hidden;z-index:0;
+  background:radial-gradient(90% 70% at 50% 85%,#2b1f0b 0%,#0d0a05 75%);
+  box-shadow:inset 0 10px 26px rgba(0,0,0,.9), inset 0 0 0 1px #000}
+.interior::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity 1s ease .2s;
+  background:radial-gradient(70% 55% at 50% 55%,rgba(251,231,166,.35),transparent 70%)}
+.safe.is-open .interior::after{opacity:1}
+
+/* the minted bar */
+.ingot{position:absolute;left:50%;top:50%;width:54%;z-index:1;perspective:700px;cursor:default;touch-action:none;
+  transform:translate(-50%,-50%);
+  transition:transform .75s cubic-bezier(.3,1.35,.5,1), filter .75s ease;
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.safe.is-out .ingot{z-index:6;cursor:grab;transform:translate(-50%,-50%) scale(1.3);
+  filter:drop-shadow(0 26px 26px rgba(0,0,0,.65)) drop-shadow(0 0 38px rgba(251,231,166,.32))}
+.safe.is-out .ingot:active{cursor:grabbing}
+.tilt{position:relative;transform-style:preserve-3d;transition:transform .2s ease-out}
+.tilt.free{transition:none}
+.tilt.snap{transition:transform .6s cubic-bezier(.25,1.25,.45,1)}
+.tilt svg{display:block;width:100%;height:auto;overflow:visible;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tilt .face-b{position:absolute;inset:0;transform:rotateY(180deg)}
+.foot-in{display:flex;flex-direction:column;align-items:center;gap:7px}
+.foot-in .note{font-size:11.5px}
+.ingot.empty{filter:grayscale(.9) brightness(.5) drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.safe.is-out .ingot.empty{filter:grayscale(.9) brightness(.55)}
+.ingot.pop .tilt{animation:pop .5s ease}
+@keyframes pop{40%{scale:1.07}}
+
+.door{position:absolute;inset:5.5%;transform-origin:0 50%;transform-style:preserve-3d;
+  transition:transform .95s cubic-bezier(.35,.75,.2,1);cursor:pointer;z-index:3}
+.door.open{transform:rotateY(-112deg)}
+.face,.back{position:absolute;inset:0;border-radius:11px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face{background:
+   radial-gradient(circle at 7% 7%,#9aa0a8 0 2px,transparent 3px),
+   radial-gradient(circle at 93% 7%,#9aa0a8 0 2px,transparent 3px),
+   radial-gradient(circle at 7% 93%,#9aa0a8 0 2px,transparent 3px),
+   radial-gradient(circle at 93% 93%,#9aa0a8 0 2px,transparent 3px),
+   linear-gradient(155deg,var(--door-hi),var(--door-lo));
+  box-shadow:inset 0 0 0 2px var(--rim), inset 0 0 0 7px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.15)}
+.back{transform:rotateY(180deg);background:linear-gradient(200deg,#2a2e33,#141619);box-shadow:inset 0 0 0 2px #0c0d0f}
+.back::before,.back::after{content:"";position:absolute;right:-3%;width:16%;height:5%;border-radius:3px;background:linear-gradient(180deg,#9aa0a8,#4d535b)}
+.back::before{top:25%}.back::after{bottom:25%}
+.pointer{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:0;height:0;
+  border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--gold)}
+.dial-wrap{position:absolute;left:50%;top:43%;width:54%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,#0e0f11 60%,#2a2e33 61%,#15171a 70%);box-shadow:0 6px 14px rgba(0,0,0,.6)}
+.dial{position:absolute;inset:6%;border-radius:50%;
+  background:
+    radial-gradient(circle,transparent 62%,#0f1012 63% 64%,transparent 65%),
+    repeating-conic-gradient(from -1deg,#e2e5e9 0 2deg,transparent 2deg 10deg),
+    radial-gradient(circle,#4a5058 0%,#2b2f34 100%);
+  box-shadow:inset 0 0 0 2px #0b0c0d}
+.dial::before{content:"";position:absolute;inset:22%;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#a3a9b1 0%,#5d636b 38%,#2a2e33 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.35)}
+.dial::after{content:"";position:absolute;left:calc(50% - 2px);top:24%;width:4px;height:14%;border-radius:2px;background:var(--gold)}
+.dial.spin{animation:spin 1.35s cubic-bezier(.45,.05,.4,1) both}
+@keyframes spin{0%{transform:rotate(0)}38%{transform:rotate(330deg)}68%{transform:rotate(150deg)}100%{transform:rotate(420deg)}}
+.lever{position:absolute;left:50%;bottom:11%;transform:translateX(-50%);width:34%;height:7%;border-radius:20px;
+  background:linear-gradient(180deg,#9aa0a8,#4d535b 60%,#2a2e33);box-shadow:0 3px 6px rgba(0,0,0,.6);transition:transform .35s ease}
+.door.turn .lever{transform:translateX(-50%) rotate(-28deg)}
+.hint{position:absolute;left:0;right:0;bottom:21%;text-align:center;font-size:11px;letter-spacing:.08em;color:var(--gold-hi);opacity:.8;animation:pulse 2s ease-in-out infinite}
+.door.turn .hint{animation:none;opacity:0}
+@keyframes pulse{50%{opacity:.35}}
+
+.flash{position:absolute;inset:-20%;pointer-events:none;opacity:0;z-index:7;background:radial-gradient(circle at 50% 50%,rgba(251,231,166,.7),rgba(220,174,66,.15) 35%,transparent 60%)}
+.flash.go{animation:flash 1s ease-out}
+@keyframes flash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+.plus{position:absolute;left:50%;top:8%;z-index:8;pointer-events:none;font-family:var(--display);font-weight:800;font-size:28px;color:var(--gold-hi);
+  text-shadow:0 2px 12px rgba(220,174,66,.7);animation:plus 1.6s ease-out forwards}
+@keyframes plus{0%{transform:translate(-50%,20px);opacity:0}20%{opacity:1;transform:translate(-50%,0)}100%{transform:translate(-50%,-30px);opacity:0}}
+.spark{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;pointer-events:none;z-index:8;
+  background:#fff8dc;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);
+  animation:spark .8s ease-out forwards}
+@keyframes spark{0%{transform:translate(0,0) scale(.2) rotate(0);opacity:1}100%{transform:translate(var(--x),var(--y)) scale(1) rotate(90deg);opacity:0}}
+
+/* ---------- lower area ---------- */
+.fortune{margin:0 18px;padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid var(--line);min-height:96px}
+.fortune .lab{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.08em;color:var(--gold);font-weight:600}
+.fortune .lab span:last-child{color:var(--faint);letter-spacing:0;font-weight:400;font-variant-numeric:tabular-nums}
+.fortune p{margin:6px 0 0;font-family:var(--display);font-weight:700;font-size:15.5px;line-height:1.5;text-wrap:balance}
+.fortune p.wait{font-family:var(--body);font-weight:400;font-size:13px;color:var(--faint)}
+.foot{height:74px;display:flex;align-items:center;justify-content:center;padding:0 22px 10px}
+.foot .note{font-size:12px;color:var(--faint);text-align:center}
+.close-btn{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:9px 22px;font-size:13px;cursor:pointer}
+.close-btn:hover{border-color:var(--steel-hi)}
+.homebar{position:absolute;left:50%;bottom:8px;width:120px;height:4px;border-radius:2px;background:rgba(255,255,255,.4);transform:translateX(-50%)}
+.toast{position:absolute;left:50%;top:96px;transform:translate(-50%,-12px);opacity:0;pointer-events:none;z-index:9;
+  background:rgba(20,18,12,.94);border:1px solid rgba(220,174,66,.5);color:var(--gold-hi);
+  padding:8px 14px;border-radius:20px;font-size:12.5px;font-weight:600;white-space:nowrap;transition:all .35s ease}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 1냥 celebration ---------- */
+.nyang{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(circle at 50% 45%,rgba(66,48,12,.92),rgba(8,8,10,.95) 70%)}
+.nyang.show{animation:nyIn .5s ease both}
+@keyframes nyIn{from{opacity:0}to{opacity:1}}
+.rays{position:absolute;left:50%;top:45%;width:640px;height:640px;margin:-320px 0 0 -320px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(251,231,166,.18) 0 8deg,transparent 8deg 20deg);
+  -webkit-mask:radial-gradient(circle,#000 0 22%,transparent 60%);mask:radial-gradient(circle,#000 0 22%,transparent 60%);
+  animation:rays 14s linear infinite}
+@keyframes rays{to{transform:rotate(360deg)}}
+.ny-card{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 24px}
+.ny-card .kicker{font-size:12px;letter-spacing:.24em;color:var(--gold)}
+.ny-card b{font-family:var(--display);font-weight:800;font-size:80px;line-height:1.05;letter-spacing:-.02em;
+  background:linear-gradient(180deg,#fff6d2 10%,#f0c75a 50%,#a8761a 92%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 18px rgba(220,174,66,.5))}
+.nyang.show .ny-card b{animation:nyPop .8s cubic-bezier(.3,1.5,.5,1) both .1s}
+@keyframes nyPop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.ny-card .sub{font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
+.ny-card .tierline{font-size:12.5px;color:var(--gold-hi);border:1px solid rgba(220,174,66,.45);border-radius:20px;padding:4px 12px;margin-top:6px}
+.ny-card button{margin-top:22px;border:1px solid var(--gold-lo);background:linear-gradient(180deg,#3a2f17,#211a0d);color:var(--gold-hi);border-radius:22px;padding:10px 30px;font-size:14px;font-weight:600;cursor:pointer}
+.ny-card button:hover{border-color:var(--gold)}
+.fall{position:absolute;top:-70px;z-index:1;pointer-events:none;animation:fall 2s ease-in forwards}
+.fall svg{display:block;width:100%;height:auto;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+@keyframes fall{to{transform:translateY(840px) rotate(var(--r))}}
+@media (prefers-reduced-motion:reduce){.rays{animation:none}}
+
+/* ---------- side ---------- */
+.side{display:flex;flex-direction:column;gap:30px;min-width:0}
+.side h1{margin:0;font-family:var(--display);font-weight:800;font-size:34px;line-height:1.15;letter-spacing:-.02em;color:var(--gold-hi);text-wrap:balance}
+.side .lede{margin:10px 0 0;color:var(--muted);max-width:38ch}
+.sec h2{margin:0 0 12px;font-size:12px;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.rules{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
+.rules li{display:flex;gap:10px}
+.rules li b{color:var(--gold);font-weight:600;min-width:72px;font-variant-numeric:tabular-nums}
+.previews{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.widget{width:158px;height:158px;border-radius:24px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  background:radial-gradient(70% 60% at 50% 42%,rgba(251,231,166,.22),transparent 70%),linear-gradient(160deg,#2b2f35,#14161a);
+  border:1px solid var(--line);box-shadow:0 14px 30px -12px rgba(0,0,0,.7)}
+.widget svg{width:68px;height:auto;display:block;filter:drop-shadow(0 6px 8px rgba(0,0,0,.6)) drop-shadow(0 0 16px rgba(251,231,166,.4))}
+.widget .n{font-family:var(--display);font-size:16px;font-weight:800;line-height:1.1;color:var(--gold-hi);font-variant-numeric:tabular-nums}
+.widget.wide{width:min(330px,100%);flex-direction:row;justify-content:flex-start;gap:18px;padding:14px 20px;
+  background:radial-gradient(40% 85% at 20% 50%,rgba(251,231,166,.24),transparent 70%),linear-gradient(160deg,#2b2f35,#14161a)}
+.widget.wide svg{width:80px;flex:none}
+.widget.wide .txt{min-width:0;display:flex;flex-direction:column;gap:3px}
+.widget.wide .n{font-size:24px}
+.widget.wide .g{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.widget .msg{margin-top:6px;font-size:11px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.notif{flex:1;min-width:200px;border-radius:18px;padding:12px 14px;background:rgba(58,62,68,.6);border:1px solid var(--line);
+  display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start}
+.notif .ic{width:34px;height:34px;border-radius:8px;background:linear-gradient(160deg,#3b4047,#1c1f23);display:flex;align-items:center;justify-content:center}
+.notif .ic svg{width:17px;height:auto}
+.notif .top{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.notif .top b{color:var(--text);font-weight:600}
+.notif p{margin:2px 0 0;font-size:13.5px;line-height:1.45}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;font-size:13.5px;cursor:pointer;transition:border-color .2s}
+.btn:hover{border-color:var(--steel-hi)}
+.btn.primary{border-color:var(--gold-lo);background:linear-gradient(180deg,#2c2414,#1d180e);color:var(--gold-hi)}
+.btn.primary:hover{border-color:var(--gold)}
+.small{margin:10px 0 0;font-size:12.5px;color:var(--faint)}
+.vdate{font-variant-numeric:tabular-nums;color:var(--text)}
+
+@media (prefers-reduced-motion:reduce){
+  .door{transition-duration:.2s}.dial.spin{animation-duration:.2s}.ingot{transition-duration:.2s}
+  .hint{animation:none}.screen.buzz{animation:none}
+}
+</style>
+
+<!-- shared gold gradients -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gPlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff2c2"/><stop offset=".16" stop-color="#ebc25a"/>
+      <stop offset=".3" stop-color="#b7871f"/><stop offset=".44" stop-color="#f6dc8c"/>
+      <stop offset=".58" stop-color="#d7a538"/><stop offset=".76" stop-color="#9a6b14"/>
+      <stop offset=".9" stop-color="#d9ac45"/><stop offset="1" stop-color="#f3d27a"/>
+    </linearGradient>
+    <linearGradient id="gField" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#b98523"/><stop offset=".3" stop-color="#e7bd55"/>
+      <stop offset=".5" stop-color="#fbe5a0"/><stop offset=".68" stop-color="#e2b44a"/>
+      <stop offset="1" stop-color="#a7771b"/>
+    </linearGradient>
+    <linearGradient id="gBevel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffae6"/><stop offset=".5" stop-color="#d9a940"/><stop offset="1" stop-color="#6e4a0b"/>
+    </linearGradient>
+    <linearGradient id="gBevelIn" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff6d2"/><stop offset=".5" stop-color="#c8952e"/><stop offset="1" stop-color="#5f3f08"/>
+    </linearGradient>
+    <linearGradient id="gEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a520c"/><stop offset=".5" stop-color="#c18a1f"/><stop offset="1" stop-color="#5b3c07"/>
+    </linearGradient>
+    <linearGradient id="gRefl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".45" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <symbol id="miniBar" viewBox="0 0 100 150">
+      <rect x="3" y="4" width="96" height="145" rx="9" fill="url(#gEdge)"/>
+      <rect x="0" y="0" width="96" height="145" rx="9" fill="url(#gPlate)"/>
+      <rect x="6" y="6" width="84" height="133" rx="5" fill="url(#gField)" stroke="url(#gBevel)" stroke-width="1.5"/>
+      <circle cx="48" cy="34" r="13" fill="none" stroke="#9a6b14" stroke-width="2"/>
+      <text x="48" y="40" font-size="15" text-anchor="middle" fill="#9a6b14" font-family="Nanum Myeongjo, serif" font-weight="800">金</text>
+      <text x="48" y="80" font-size="15" text-anchor="middle" fill="#9a6b14" font-family="Nanum Myeongjo, serif" font-weight="800">999.9</text>
+      <rect x="22" y="92" width="52" height="2" fill="#9a6b14" opacity=".6"/>
+      <rect x="28" y="104" width="40" height="6" rx="2" fill="#9a6b14" opacity=".45"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <div class="phone">
+    <div class="screen" id="screen">
+      <div class="status"><span>8:00</span><span>5G <i></i></span></div>
+      <div class="head">
+        <div class="brand">하루 한돈<small>연속 출석 <span id="streak">0</span>일</small></div>
+        <div class="weight"><b id="wTotal">0돈</b><span id="wGram">0g</span></div>
+      </div>
+      <div class="tier"><span class="name" id="tierName">철제 금고</span><div class="meter"><span id="meter"></span></div><span class="left" id="tierLeft"></span></div>
+
+      <div class="stage" id="stage">
+        <div class="safe" id="safe" data-tier="iron">
+          <div class="hinge t"></div><div class="hinge b"></div>
+          <div class="interior"></div>
+
+          <div class="ingot" id="ingot" role="button" tabindex="-1" aria-label="금괴">
+            <div class="tilt" id="tilt">
+              <svg class="face-f" viewBox="0 0 200 300" aria-hidden="true">
+                <defs>
+                  <clipPath id="plateClip"><rect x="0" y="0" width="200" height="300" rx="14"/></clipPath>
+                </defs>
+                <!-- thickness -->
+                <rect x="5" y="6" width="200" height="300" rx="14" fill="url(#gEdge)"/>
+                <!-- plate -->
+                <rect x="0" y="0" width="200" height="300" rx="14" fill="url(#gPlate)"/>
+                <rect x="1" y="1" width="198" height="298" rx="13.5" fill="none" stroke="#fff7d8" stroke-opacity=".6" stroke-width="1"/>
+                <!-- beveled frame + mirror field -->
+                <rect x="11" y="11" width="178" height="278" rx="8" fill="none" stroke="url(#gBevel)" stroke-width="3"/>
+                <rect x="14" y="14" width="172" height="272" rx="6" fill="url(#gField)" stroke="url(#gBevelIn)" stroke-width="1.6"/>
+                <!-- stamp -->
+                <g id="stamp"></g>
+                <!-- reflections -->
+                <g clip-path="url(#plateClip)" style="mix-blend-mode:screen">
+                  <rect id="refl" x="-40" y="-40" width="54" height="380" fill="url(#gRefl)" transform="translate(70 0) skewX(-22)"/>
+                  <rect id="refl2" x="-40" y="-40" width="16" height="380" fill="url(#gRefl)" opacity=".7" transform="translate(130 0) skewX(-22)"/>
+                  <rect id="shine" x="-60" y="-40" width="80" height="380" fill="url(#gShine)" transform="translate(-150 0) skewX(-22)"/>
+                </g>
+              </svg>
+              <svg class="face-b" viewBox="0 0 200 300" aria-hidden="true">
+                <defs>
+                  <clipPath id="plateClipB"><rect x="0" y="0" width="200" height="300" rx="14"/></clipPath>
+                  <pattern id="pGeum" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)">
+                    <text x="12.6" y="16.6" font-size="10" text-anchor="middle" font-family="Nanum Myeongjo, serif" font-weight="800" fill="#fff6d2" opacity=".45">金</text>
+                    <text x="12" y="16" font-size="10" text-anchor="middle" font-family="Nanum Myeongjo, serif" font-weight="800" fill="#9a6b14" opacity=".4">金</text>
+                  </pattern>
+                </defs>
+                <rect x="-5" y="6" width="200" height="300" rx="14" fill="url(#gEdge)"/>
+                <rect x="0" y="0" width="200" height="300" rx="14" fill="url(#gPlate)"/>
+                <rect x="1" y="1" width="198" height="298" rx="13.5" fill="none" stroke="#fff7d8" stroke-opacity=".6" stroke-width="1"/>
+                <rect x="11" y="11" width="178" height="278" rx="8" fill="none" stroke="url(#gBevel)" stroke-width="3"/>
+                <rect x="14" y="14" width="172" height="272" rx="6" fill="url(#gField)" stroke="url(#gBevelIn)" stroke-width="1.6"/>
+                <rect x="15" y="15" width="170" height="270" rx="5" fill="url(#pGeum)"/>
+                <rect x="44" y="30" width="112" height="18" rx="4" fill="url(#gField)"/>
+                <circle cx="100" cy="128" r="56" fill="url(#gField)"/>
+                <rect x="30" y="194" width="140" height="82" rx="6" fill="url(#gField)"/>
+                <g id="stampB"></g>
+                <g clip-path="url(#plateClipB)" style="mix-blend-mode:screen">
+                  <rect id="reflB" x="-40" y="-40" width="54" height="380" fill="url(#gRefl)" transform="translate(70 0) skewX(-22)"/>
+                  <rect id="refl2B" x="-40" y="-40" width="16" height="380" fill="url(#gRefl)" opacity=".7" transform="translate(130 0) skewX(-22)"/>
+                  <rect id="shineB" x="-60" y="-40" width="80" height="380" fill="url(#gShine)" transform="translate(-150 0) skewX(-22)"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="door" id="door" role="button" tabindex="0" aria-label="금고 열기">
+            <div class="face">
+              <div class="pointer"></div>
+              <div class="dial-wrap"><div class="dial" id="dial"></div></div>
+              <div class="hint">터치해서 열기</div>
+              <div class="lever"></div>
+            </div>
+            <div class="back"></div>
+          </div>
+        </div>
+        <div class="flash" id="flash"></div>
+      </div>
+
+      <section class="fortune">
+        <div class="lab"><span>오늘의 재물운</span><span id="fDate"></span></div>
+        <p id="fortune" class="wait">금고를 열면 오늘의 덕담이 나와요.</p>
+      </section>
+      <div class="foot" id="foot"><span class="note">하루 한 번 금고를 열면 금 1돈이 더해져요</span></div>
+      <div class="homebar"></div>
+      <div class="toast" id="toast"></div>
+      <div class="nyang" id="nyang" hidden>
+        <div class="rays"></div>
+        <div class="ny-card">
+          <span class="kicker">축하해요</span>
+          <b id="nyBig">1냥</b>
+          <span class="sub" id="nySub"></span>
+          <span class="tierline" id="nyTier"></span>
+          <button id="nyOk">금고로 돌아가기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <h1>하루 한돈</h1>
+      <p class="lede">금고를 열면 거울처럼 매끈한 골드바가 나와요. 출석할 때마다 각인된 무게가 1돈씩 늘어나고, 골드바를 누르면 번찍이며, 잡고 옆으로 돌리면 뒷면이 보여요.</p>
+    </div>
+    <div class="sec">
+      <h2>출석 규칙</h2>
+      <ul class="rules">
+        <li><b>하루 1회</b>금고를 연 날 금 1돈(3.75g) 추가</li>
+        <li><b>안 연 날</b>무게는 그대로, 연속 출석만 끊겨요</li>
+        <li><b>10돈마다</b>1냥 달성 축하 화면이 열려요</li>
+        <li><b>1·3·10냥</b>황동 → 금빛 → 황금 대금고로 업그레이드</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h2>홈 화면 위젯 · 아침 알림</h2>
+      <div class="previews">
+        <div class="widget">
+          <svg viewBox="0 0 100 150" aria-hidden="true"><use href="#miniBar"/></svg>
+          <div class="n" id="wCnt">0돈</div>
+        </div>
+        <div class="widget wide">
+          <svg viewBox="0 0 100 150" aria-hidden="true"><use href="#miniBar"/></svg>
+          <div class="txt">
+            <div class="n" id="wCnt2">0돈</div>
+            <div class="g" id="wG">0g</div>
+            <div class="msg" id="wMsg"></div>
+          </div>
+        </div>
+        <div class="notif">
+          <div class="ic"><svg viewBox="0 0 100 150" aria-hidden="true"><use href="#miniBar"/></svg></div>
+          <div>
+            <div class="top"><b>하루 한돈</b><span>오전 8:00</span></div>
+            <p id="nMsg"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>체험해보기</h2>
+      <div class="controls">
+        <button class="btn primary" id="nextDay">다음 날로 넘기기</button>
+        <button class="btn primary" id="toNyang">1냥 직전으로</button>
+        <button class="btn" id="skipDay">하루 거르고 넘기기</button>
+        <button class="btn" id="sound">효과음 켜짐</button>
+        <button class="btn" id="sample">체험 데이터로</button>
+        <button class="btn" id="reset">처음부터</button>
+      </div>
+      <p class="small">지금 날짜: <span class="vdate" id="vdate"></span>. 체험용으로 12일 출석(1냥 2돈) 상태에서 시작해요. 기록은 이 브라우저에만 저장돼요.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  const DAY = 86400000, KEY = 'ogg-proto-v2', GRAM = 3.75, NS = 'http://www.w3.org/2000/svg';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = reduce ? 0.2 : 1;
+  const FORTUNES = [
+    "오늘 들어온 복은 내일 두 배로 돌아옵니다.",
+    "한 돈 한 돈 모여 큰 금괴가 됩니다. 오늘도 한 돈 채웠어요.",
+    "뜻밖의 곳에서 좋은 소식이 들려오는 날이에요.",
+    "지갑이 두둑해지는 기운이 함께합니다.",
+    "오늘 아낀 만 원이 내일의 금이 됩니다.",
+    "웃는 얼굴에 재물이 따라오는 하루예요.",
+    "오래 미뤄둔 일을 처리하면 운이 트입니다.",
+    "귀인이 가까이에 있어요. 먼저 인사를 건네보세요.",
+    "금은 서두르지 않아도 빛납니다. 오늘도 차근차근.",
+    "돈 들어올 문이 활짝 열리는 날입니다.",
+    "오늘의 선택이 좋은 결과로 이어져요.",
+    "건강이 가장 큰 재산이에요. 물 한 잔 더 드세요.",
+    "생각지 못한 용돈 같은 행운이 찾아옵니다.",
+    "꾸준함이 가장 큰 재테크예요. 오늘도 출석하셨네요.",
+    "오늘 만난 사람에게 복을 나눠주세요. 두 배로 돌아옵니다.",
+    "계획했던 일이 술술 풀리는 하루예요.",
+    "금고 문을 연 당신, 오늘 하루도 부자입니다.",
+    "작은 행운이 연달아 찾아오는 날이에요.",
+    "마음이 넉넉하면 주머니도 넉넉해집니다.",
+    "사고 싶은 것보다 이미 가진 것을 세어보는 날이에요.",
+    "좋은 기운이 동쪽에서 들어옵니다.",
+    "행복하세요. 그리고 돈 많이 버세요.",
+    "금괴처럼 반짝이는 하루가 될 거예요.",
+    "오늘의 수고가 곧 보상으로 돌아옵니다."
+  ];
+  const TIERS = [
+    {min:0,   key:'iron',  name:'철제 금고',   short:'철제'},
+    {min:10,  key:'brass', name:'황동 금고',   short:'1냥'},
+    {min:30,  key:'gold',  name:'금빛 금고',   short:'3냥'},
+    {min:100, key:'grand', name:'황금 대금고', short:'10냥'}
+  ];
+  const WD = ['일','월','화','수','목','금','토'];
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } },
+    set(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch(e){} }
+  };
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+  const shift = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return fmt(d); };
+
+  function seed(sound){
+    const t = fmt(new Date()); const days = [];
+    for (let i=12;i>=1;i--) days.push(shift(t,-i));
+    return {days, offset:0, sound: sound !== false};
+  }
+  let S = store.get();
+  if (!S || !Array.isArray(S.days)) S = seed();
+  const save = () => store.set(S);
+  const today = () => fmt(new Date(Date.now() + S.offset*DAY));
+  const has = d => S.days.includes(d);
+  function streak(){ let d = today(), n = 0; if (!has(d)) d = shift(d,-1); while (has(d)) { n++; d = shift(d,-1); } return n; }
+  const tierOf = c => TIERS.filter(t => c >= t.min).pop();
+  function fortuneFor(d){ let h = 7; for (const ch of d) h = (h*31 + ch.charCodeAt(0)) >>> 0; return FORTUNES[h % FORTUNES.length]; }
+  function donLabel(n){
+    const ny = Math.floor(n/10), dn = n % 10;
+    if (!ny) return dn + '돈';
+    return dn ? ny + '냥 ' + dn + '돈' : ny + '냥';
+  }
+  const gramLabel = n => (Math.round(n*GRAM*100)/100) + 'g';
+
+  /* ---------- engraved stamp ---------- */
+  const SERIF = 'Nanum Myeongjo, AppleMyungjo, serif', SANS = 'IBM Plex Sans KR, sans-serif', MONO = 'IBM Plex Mono, monospace';
+  function engraveText(g, x, y, str, size, family, weight, spacing){
+    const layers = [[0.7,0.7,'#6b4708',.55],[-0.5,-0.5,'#fff8dc',.85],[0,0,'#a87818',1]];
+    const out = [];
+    layers.forEach(([dx,dy,fill,op])=>{
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', x+dx); t.setAttribute('y', y+dy);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size', size);
+      t.setAttribute('font-family', family); t.setAttribute('font-weight', weight||400);
+      if (spacing) t.setAttribute('letter-spacing', spacing);
+      t.setAttribute('fill', fill); t.setAttribute('opacity', op);
+      t.textContent = str; g.appendChild(t); out.push(t);
+    });
+    return out;
+  }
+  function engraveShape(g, make){
+    [[0.7,0.7,'#6b4708',.55],[-0.5,-0.5,'#fff8dc',.85],[0,0,'#a87818',1]].forEach(([dx,dy,c,op])=>{
+      const el = make(); el.setAttribute('transform', `translate(${dx} ${dy})`);
+      el.setAttribute('stroke', c); el.setAttribute('opacity', op); el.setAttribute('fill','none'); g.appendChild(el);
+    });
+  }
+  const stamp = $('stamp');
+  engraveShape(stamp, ()=>{ const c = document.createElementNS(NS,'circle'); c.setAttribute('cx',100); c.setAttribute('cy',58); c.setAttribute('r',25); c.setAttribute('stroke-width',2); return c; });
+  engraveShape(stamp, ()=>{ const c = document.createElementNS(NS,'circle'); c.setAttribute('cx',100); c.setAttribute('cy',58); c.setAttribute('r',20); c.setAttribute('stroke-width',.8); return c; });
+  engraveText(stamp, 100, 67, '金', 25, SERIF, 800);
+  engraveText(stamp, 100, 108, 'FINE GOLD', 10, SANS, 600, 4);
+  engraveText(stamp, 100, 143, '999.9', 31, SERIF, 800, 1);
+  engraveShape(stamp, ()=>{ const l = document.createElementNS(NS,'line'); l.setAttribute('x1',50); l.setAttribute('x2',150); l.setAttribute('y1',157); l.setAttribute('y2',157); l.setAttribute('stroke-width',1.2); return l; });
+  const wEls = engraveText(stamp, 100, 191, '0돈', 25, SERIF, 800);
+  const gEls = engraveText(stamp, 100, 211, '0g', 10.5, SANS, 500, 1.5);
+  engraveText(stamp, 100, 248, '하루 한돈', 10, SERIF, 700, 3);
+  const nEls = engraveText(stamp, 100, 266, 'No. OG000000', 8, MONO, 500, 1.2);
+
+  const stampB = $('stampB');
+  engraveText(stampB, 100, 43, 'OHSANG VAULT', 8.5, SANS, 600, 3);
+  engraveShape(stampB, ()=>{ const c = document.createElementNS(NS,'circle'); c.setAttribute('cx',100); c.setAttribute('cy',128); c.setAttribute('r',52); c.setAttribute('stroke-width',2.2); return c; });
+  engraveShape(stampB, ()=>{ const c = document.createElementNS(NS,'circle'); c.setAttribute('cx',100); c.setAttribute('cy',128); c.setAttribute('r',45); c.setAttribute('stroke-width',.8); return c; });
+  engraveText(stampB, 100, 151, '福', 64, SERIF, 800);
+  engraveText(stampB, 100, 218, '행복하세요', 17, SERIF, 800, 1);
+  engraveText(stampB, 100, 240, '돈 많이 버세요', 12, SERIF, 700, 1);
+  engraveShape(stampB, ()=>{ const l = document.createElementNS(NS,'line'); l.setAttribute('x1',60); l.setAttribute('x2',140); l.setAttribute('y1',252); l.setAttribute('y2',252); l.setAttribute('stroke-width',1); return l; });
+  const nElsB = engraveText(stampB, 100, 267, 'No. OG000000', 8, MONO, 500, 1.2);
+
+  /* ---------- sound ---------- */
+  let ctx = null;
+  function ac(){ if (!S.sound) return null; try { ctx = ctx || new (window.AudioContext||window.webkitAudioContext)(); if (ctx.state==='suspended') ctx.resume(); return ctx; } catch(e){ return null; } }
+  function tone(f, type, dur, vol, when){
+    const c = ac(); if (!c) return;
+    const t = c.currentTime + (when||0), o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.02);
+  }
+  const tick = () => tone(2600 + Math.random()*500, 'square', 0.025, 0.035);
+  function clunk(){ tone(85,'sine',0.35,0.5); tone(160,'triangle',0.18,0.18,0.01); }
+  function chime(){ [1568,2093,2637,3136].forEach((f,i)=>tone(f,'sine',1.4,0.09,i*0.07)); }
+  function ting(){ tone(3520,'sine',0.9,0.07); tone(4699,'sine',0.6,0.04,0.04); tone(1760,'triangle',0.5,0.05); }
+  function flipSound(){ tone(620,'sine',0.14,0.06); tone(1180,'sine',0.35,0.05,0.1); tone(2637,'sine',0.6,0.04,0.18); }
+  function haptic(ms){ try { navigator.vibrate && navigator.vibrate(ms); } catch(e){} }
+
+  /* ---------- render ---------- */
+  const door = $('door'), dial = $('dial'), safe = $('safe'), ingot = $('ingot'), stage = $('stage'), tilt = $('tilt');
+  let shown = S.days.length;
+  function engrave(n){
+    const w = donLabel(n), g = gramLabel(n);
+    wEls.forEach(e=>e.textContent = w); gEls.forEach(e=>e.textContent = g);
+    nEls.concat(nElsB).forEach(e=>e.textContent = 'No. OG' + String(n).padStart(6,'0'));
+    $('wTotal').textContent = w; $('wGram').textContent = g + ' · ' + n + '돈';
+    $('wCnt').textContent = w; $('wCnt2').textContent = w; $('wG').textContent = g;
+    ingot.classList.toggle('empty', n === 0);
+  }
+  function countUp(from, to){
+    if (reduce || from === to) { engrave(to); return; }
+    const t0 = performance.now(), dur = 700;
+    (function step(now){
+      const p = Math.min(1,(now-t0)/dur), v = Math.round(from + (to-from)*p);
+      engrave(v); if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function renderStats(){
+    const c = S.days.length, t = tierOf(c), nx = TIERS[TIERS.indexOf(t)+1];
+    $('streak').textContent = streak();
+    $('toNyang').textContent = (Math.floor(c/10)+1) + '냥 직전으로';
+    safe.dataset.tier = t.key; $('tierName').textContent = t.name;
+    if (nx) {
+      $('tierLeft').textContent = nx.short + '까지 ' + (nx.min-c) + '돈';
+      $('meter').style.width = ((c - t.min) / (nx.min - t.min) * 100) + '%';
+    } else { $('tierLeft').textContent = '최고 단계'; $('meter').style.width = '100%'; }
+    $('wMsg').textContent = fortuneFor(today());
+    const d = parse(today());
+    $('fDate').textContent = (d.getMonth()+1) + '.' + d.getDate() + ' ' + WD[d.getDay()];
+    $('vdate').textContent = (d.getMonth()+1) + '월 ' + d.getDate() + '일 (' + WD[d.getDay()] + ')' + (S.offset ? ' · 체험 +' + S.offset + '일' : '');
+    $('nMsg').textContent = has(today())
+      ? '오늘의 금 1돈은 이미 받았어요. 내일 아침에 또 도착해요.'
+      : '오늘의 금 1돈이 금고에 도착했어요. 문을 열어 받아가세요.';
+  }
+  function setFortune(show){
+    const p = $('fortune');
+    if (show) { p.classList.remove('wait'); p.textContent = fortuneFor(today()); }
+    else { p.classList.add('wait'); p.textContent = '금고를 열면 오늘의 덕담이 나와요.'; }
+  }
+  function setFoot(open){
+    const f = $('foot');
+    f.innerHTML = open
+      ? '<div class="foot-in"><span class="note">금괴를 잡고 옆으로 돌리면 뒷면이 보여요</span><button class="close-btn" id="closeBtn">금고 보관</button></div>'
+      : '<span class="note">하루 한 번 금고를 열면 금 1돈이 더해져요</span>';
+    if (open) $('closeBtn').addEventListener('click', closeSafe);
+  }
+  let toastTimer;
+  function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2400); }
+  function flash(){ const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+  function buzz(){ const s = $('screen'); s.classList.remove('buzz'); void s.offsetWidth; s.classList.add('buzz'); haptic(25); }
+  function shine(){
+    ['shine','shineB'].forEach(id=>{ try { $(id).animate([{transform:'translate(-150px,0) skewX(-22deg)'},{transform:'translate(420px,0) skewX(-22deg)'}],
+      {duration: reduce ? 300 : 850, easing:'ease-out'}); } catch(e){} });
+  }
+  function pop(){ ingot.classList.remove('pop'); void ingot.offsetWidth; ingot.classList.add('pop'); }
+  function plusOne(){ const p = document.createElement('div'); p.className = 'plus'; p.textContent = '+1돈'; stage.appendChild(p); setTimeout(()=>p.remove(), 1700); }
+  function sparkle(x,y,count){
+    for (let i=0;i<count;i++){
+      const s = document.createElement('span'); s.className = 'spark';
+      const a = Math.random()*Math.PI*2, r = 30 + Math.random()*50;
+      s.style.left = x+'px'; s.style.top = y+'px';
+      s.style.setProperty('--x', Math.cos(a)*r+'px'); s.style.setProperty('--y', Math.sin(a)*r+'px');
+      s.style.width = s.style.height = (8 + Math.random()*12) + 'px';
+      stage.appendChild(s); setTimeout(()=>s.remove(), 850);
+    }
+  }
+
+  /* ---------- tilt, drag-to-flip + moving reflection ---------- */
+  const reflEls = [[$('refl'),$('refl2')],[$('reflB'),$('refl2B')]];
+  let pointer = null, raf = null, base = 0, drag = null, cur = {ry:0, rx:0};
+  function apply(ry, rx){
+    cur = {ry, rx};
+    tilt.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${(base+ry).toFixed(2)}deg)`;
+    const x = 80 + Math.sin(ry*Math.PI/180)*260 - rx*2.5;
+    reflEls.forEach(([a,b])=>{
+      a.setAttribute('transform', `translate(${x.toFixed(1)} 0) skewX(-22)`);
+      b.setAttribute('transform', `translate(${(x+62).toFixed(1)} 0) skewX(-22)`);
+    });
+  }
+  function setTilt(px, py){ apply(px*22, -py*16); }
+  function loop(t){
+    if (!pointer && !drag) setTilt(Math.sin(t/1700)*0.28, Math.cos(t/2300)*0.18);
+    raf = requestAnimationFrame(loop);
+  }
+  function startLoop(){ if (!raf && !reduce) raf = requestAnimationFrame(loop); }
+  function stopLoop(){ if (raf) cancelAnimationFrame(raf); raf = null; pointer = null; drag = null; base = 0; tilt.classList.remove('free','snap'); apply(0,0); ingot.setAttribute('aria-label','금괴 앞면'); }
+  const isBack = b => Math.abs(Math.round(b/180)) % 2 === 1;
+  function snapTo(total){
+    const wasBack = isBack(base);
+    base = Math.round(total/180)*180;
+    tilt.classList.remove('free'); tilt.classList.add('snap');
+    apply(0,0);
+    setTimeout(()=>tilt.classList.remove('snap'), 650);
+    const nowBack = isBack(base);
+    if (nowBack !== wasBack) { flipSound(); haptic(12); setTimeout(shine, 380); }
+    ingot.setAttribute('aria-label', nowBack ? '금괴 뒷면' : '금괴 앞면');
+  }
+  ingot.addEventListener('pointerdown', e => {
+    if (!isOpen || busy) return;
+    drag = {x:e.clientX, y:e.clientY, moved:false, ry0:cur.ry};
+    try { ingot.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  ingot.addEventListener('pointermove', e => {
+    if (!isOpen) return;
+    if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx,dy) > 6) { drag.moved = true; tilt.classList.remove('snap'); tilt.classList.add('free'); }
+      if (drag.moved) apply(drag.ry0 + dx*0.8, Math.max(-25, Math.min(25, -dy*0.25)));
+      return;
+    }
+    const r = ingot.getBoundingClientRect();
+    pointer = {x:(e.clientX - r.left)/r.width - .5, y:(e.clientY - r.top)/r.height - .5};
+    setTilt(Math.max(-.6,Math.min(.6,pointer.x)), Math.max(-.6,Math.min(.6,pointer.y)));
+  });
+  function endDrag(e){
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.moved) snapTo(base + cur.ry);
+    else if (e.type === 'pointerup') tapIngot(e);
+  }
+  ingot.addEventListener('pointerup', endDrag);
+  ingot.addEventListener('pointercancel', endDrag);
+  ingot.addEventListener('pointerleave', ()=>{ if (!drag) pointer = null; });
+
+  /* ---------- open / close ---------- */
+  let isOpen = false, busy = false;
+  function openSafe(){
+    if (isOpen || busy) return; busy = true;
+    ac(); door.classList.add('turn'); dial.classList.add('spin');
+    let ticks = 0; const iv = setInterval(()=>{ tick(); if (++ticks % 3 === 0) haptic(6); }, 70);
+    setTimeout(()=>{
+      clearInterval(iv); clunk(); buzz();
+      door.classList.add('open'); safe.classList.add('is-open'); door.setAttribute('aria-label','열린 금고 문');
+      setTimeout(()=>{
+        safe.classList.add('is-out'); ingot.tabIndex = 0; isOpen = true; startLoop();
+        setTimeout(()=>{
+          const d = today();
+          if (!has(d)) {
+            const before = tierOf(S.days.length);
+            S.days.push(d); save();
+            const n = S.days.length;
+            flash(); chime(); buzz(); shine(); pop(); plusOne();
+            const r = stage.getBoundingClientRect(); sparkle(r.width/2, r.height/2, 12);
+            countUp(shown, n); shown = n;
+            const after = tierOf(n);
+            if (n % 10 === 0) setTimeout(()=>celebrate(n, after !== before ? after : null), 1100*T);
+            else toast(after !== before ? after.name + '로 업그레이드됐어요!' : '금 1돈 입고! 총 ' + donLabel(n));
+          } else {
+            shine(); ting();
+            toast('오늘의 금 1돈은 이미 받았어요. 내일 또 만나요.');
+          }
+          renderStats(); setFortune(true); setFoot(true);
+          busy = false;
+        }, 500*T);
+      }, 650*T);
+    }, 1350*T);
+  }
+  function closeSafe(instant){
+    if (!isOpen) return;
+    isOpen = false; stopLoop(); setFoot(false);
+    safe.classList.remove('is-out'); ingot.tabIndex = -1;
+    const shut = () => { door.classList.remove('open'); safe.classList.remove('is-open'); door.setAttribute('aria-label','금고 열기'); };
+    const done = () => { door.classList.remove('turn'); dial.classList.remove('spin'); };
+    if (instant === true) { shut(); done(); return; }
+    busy = true;
+    setTimeout(()=>{ shut(); setTimeout(()=>{ clunk(); done(); busy = false; }, 850*T); }, 380*T);
+  }
+  function tapIngot(e){
+    if (!isOpen || busy) return;
+    const r = stage.getBoundingClientRect();
+    const x = e && e.clientX ? e.clientX - r.left : r.width/2, y = e && e.clientY ? e.clientY - r.top : r.height/2;
+    sparkle(x, y, 9); shine(); ting(); buzz(); pop();
+  }
+
+  /* ---------- 1냥 celebration ---------- */
+  function fanfare(){
+    [1047,1319,1568,2093].forEach((f,i)=>tone(f,'triangle',0.5,0.08,i*0.12));
+    [2093,2637,3136,4186].forEach((f,i)=>tone(f,'sine',1.8,0.06,0.55+i*0.05));
+    tone(65,'sine',1.4,0.35,0.5);
+  }
+  function dropBar(){
+    const d = document.createElement('div'); d.className = 'fall';
+    d.innerHTML = '<svg viewBox="0 0 100 150" aria-hidden="true"><use href="#miniBar"/></svg>';
+    d.style.left = (4 + Math.random()*88) + '%';
+    d.style.width = (18 + Math.random()*18) + 'px';
+    d.style.setProperty('--r', (Math.random()*120-60) + 'deg');
+    d.style.animationDuration = (1.6 + Math.random()*0.9) + 's';
+    $('nyang').appendChild(d); setTimeout(()=>d.remove(), 2700);
+  }
+  function celebrate(n, newTier){
+    const ny = n/10;
+    $('nyBig').textContent = ny + '냥';
+    $('nySub').textContent = '금 ' + n + '돈 · ' + gramLabel(n) + ' 모았어요';
+    $('nyTier').textContent = newTier ? newTier.name + '로 업그레이드' : '다음 목표 ' + (ny+1) + '냥';
+    const o = $('nyang'); o.hidden = false; o.classList.remove('show'); void o.offsetWidth; o.classList.add('show');
+    fanfare(); buzz(); haptic([30,60,30]);
+    if (!reduce) for (let i=0;i<22;i++) setTimeout(dropBar, i*85);
+  }
+  $('nyOk').addEventListener('click', ()=>{ $('nyang').hidden = true; shine(); });
+
+  door.addEventListener('click', openSafe);
+  door.addEventListener('keydown', e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); openSafe(); } });
+  ingot.addEventListener('keydown', e => {
+    if (e.key==='Enter' || e.key===' ') { e.preventDefault(); tapIngot(); }
+    else if (isOpen && (e.key==='ArrowLeft' || e.key==='ArrowRight')) { e.preventDefault(); snapTo(base + (e.key==='ArrowRight' ? 180 : -180)); }
+  });
+
+  /* ---------- test controls ---------- */
+  $('toNyang').addEventListener('click', ()=>{
+    const c = S.days.length, target = (Math.floor(c/10)+1)*10 - 1;
+    const t = today(), days = [];
+    for (let i=target;i>=1;i--) days.push(shift(t,-i));
+    S.days = days; save(); refresh();
+    toast(donLabel(target) + ' 상태예요. 금고를 열어 채워볼게요.');
+    setTimeout(openSafe, 1000);
+  });
+  function refresh(){ $('nyang').hidden = true; closeSafe(true); busy = false; shown = S.days.length; engrave(shown); renderStats(); setFortune(false); }
+  $('nextDay').addEventListener('click', ()=>{ S.offset += 1; save(); refresh(); toast('다음 날 아침이에요. 금고를 열어보세요.'); });
+  $('skipDay').addEventListener('click', ()=>{ S.offset += 2; save(); refresh(); toast('하루를 걸렀어요. 연속 출석이 끊겼어요.'); });
+  $('reset').addEventListener('click', ()=>{ S = {days:[], offset:0, sound:S.sound}; save(); refresh(); });
+  $('sample').addEventListener('click', ()=>{ S = seed(S.sound); save(); refresh(); });
+  function soundLabel(){ $('sound').textContent = S.sound ? '효과음 켜짐' : '효과음 꺼짐'; }
+  $('sound').addEventListener('click', ()=>{ S.sound = !S.sound; save(); soundLabel(); });
+
+  soundLabel(); engrave(shown); renderStats(); setFortune(false); apply(0,0);
+})();
+</script>

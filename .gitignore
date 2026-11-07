@@ -1,0 +1,23 @@
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+keystore.properties
+
+# iOS / Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 위젯 배경: 어두운 강철 + 위쪽 금빛 후광 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="315"
+                android:endColor="#FF14161A"
+                android:startColor="#FF2B2F35"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:centerX="0.5"
+                android:centerY="0.42"
+                android:endColor="#00FBE7A6"
+                android:gradientRadius="120dp"
+                android:startColor="#38FBE7A6"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <stroke android:width="1dp" android:color="#FF2C3036" />
+        </shape>
+    </item>
+</layer-list>

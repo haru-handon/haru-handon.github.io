@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ : 출석 기록(shared prefs)을 클라우드 백업과 기기 이전에 포함 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="handon.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="handon.xml" />
+    </device-transfer>
+</data-extraction-rules>

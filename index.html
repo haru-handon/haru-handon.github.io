@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>하루 한돈</title>
+<meta name="description" content="하루 한 번 금고를 열면 금 1돈이 골드바에 더해지는 행운 앱. 행복하세요, 돈 많이 버세요.">
+<meta property="og:title" content="하루 한돈">
+<meta property="og:description" content="매일 한 돈씩 쌓이는 행운의 골드바">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ink:#101113; --panel:#1b1e22; --line:#2c3036;
+  --gold-hi:#fbe7a6; --gold:#dcae42; --gold-lo:#8a6316;
+  --text:#ede7d7; --muted:#9c9585;
+  --display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text)}
+body{font-family:var(--body);font-size:16px;line-height:1.7;
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+a{color:var(--gold-hi)}
+.wrap{max-width:880px;margin:0 auto;padding-block:64px 48px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:48px;align-items:center}
+@media (max-width:720px){.hero{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}}
+.eyebrow{font-size:13px;letter-spacing:.2em;color:var(--gold)}
+h1{margin:8px 0 12px;font-family:var(--display);font-weight:800;font-size:clamp(44px,8vw,68px);line-height:1.05;letter-spacing:-.02em;
+  background:linear-gradient(180deg,#fff6d2 10%,#f0c75a 55%,#b0801f 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:0;color:var(--muted);max-width:34ch;font-size:17px}
+@media (max-width:720px){.lede{margin-inline:auto}}
+.bar{width:180px;max-width:100%;filter:drop-shadow(0 24px 30px rgba(0,0,0,.6)) drop-shadow(0 0 40px rgba(251,231,166,.25))}
+.stores{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+@media (max-width:720px){.stores{justify-content:center}}
+.store{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 18px;font-size:14px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-top:72px}
+.card{border:1px solid var(--line);border-radius:16px;padding:22px;background:rgba(255,255,255,.025)}
+.card h2{margin:0 0 6px;font-family:var(--display);font-size:20px;color:var(--gold-hi)}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.units{margin-top:56px;display:flex;gap:28px;flex-wrap:wrap;justify-content:center;font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.units b{display:block;font-family:var(--display);font-size:28px;color:var(--text)}
+footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">매일 한 돈씩 쌓이는 행운의 골드바</div>
+      <h1>하루 한돈</h1>
+      <p class="lede">하루 한 번 금고를 열면 금 1돈이 골드바에 더해지고, 오늘의 재물운 덕담이 도착해요. 행복하세요, 그리고 돈 많이 버세요.</p>
+      <div class="stores"><span class="store">Google Play 출시 준비 중</span><span class="store">App Store 출시 준비 중</span></div>
+    </div>
+    <svg class="bar" viewBox="0 0 200 300" role="img" aria-label="하루 한돈 골드바">
+      <defs>
+        <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2c2"/><stop offset=".16" stop-color="#ebc25a"/><stop offset=".3" stop-color="#b7871f"/><stop offset=".44" stop-color="#f6dc8c"/><stop offset=".58" stop-color="#d7a538"/><stop offset=".76" stop-color="#9a6b14"/><stop offset=".9" stop-color="#d9ac45"/><stop offset="1" stop-color="#f3d27a"/></linearGradient>
+        <linearGradient id="f" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#b98523"/><stop offset=".3" stop-color="#e7bd55"/><stop offset=".5" stop-color="#fbe5a0"/><stop offset=".68" stop-color="#e2b44a"/><stop offset="1" stop-color="#a7771b"/></linearGradient>
+        <linearGradient id="e" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a520c"/><stop offset=".5" stop-color="#c18a1f"/><stop offset="1" stop-color="#5b3c07"/></linearGradient>
+      </defs>
+      <rect x="5" y="6" width="200" height="300" rx="14" fill="url(#e)"/>
+      <rect width="200" height="300" rx="14" fill="url(#p)"/>
+      <rect x="14" y="14" width="172" height="272" rx="6" fill="url(#f)" stroke="#fff6d2" stroke-opacity=".5" stroke-width="1.5"/>
+      <g font-family="Nanum Myeongjo, serif" font-weight="800" text-anchor="middle" fill="#a87818">
+        <circle cx="100" cy="58" r="25" fill="none" stroke="#a87818" stroke-width="2"/>
+        <text x="100" y="67" font-size="25">金</text>
+        <text x="100" y="108" font-size="10" letter-spacing="4" font-family="IBM Plex Sans KR, sans-serif" font-weight="600">FINE GOLD</text>
+        <text x="100" y="143" font-size="31">999.9</text>
+        <line x1="50" x2="150" y1="157" y2="157" stroke="#a87818" stroke-width="1.2"/>
+        <text x="100" y="191" font-size="25">1냥</text>
+        <text x="100" y="211" font-size="10.5" font-family="IBM Plex Sans KR, sans-serif" font-weight="500">37.5g</text>
+        <text x="100" y="248" font-size="10" letter-spacing="3" font-weight="700">하루 한돈</text>
+      </g>
+    </svg>
+  </section>
+
+  <div class="grid">
+    <div class="card"><h2>금고 열기</h2><p>다이얼이 돌아가고 묵직하게 문이 열리면, 거울처럼 매끈한 골드바가 앞으로 나와요.</p></div>
+    <div class="card"><h2>하루 1돈</h2><p>금고를 연 날마다 금 1돈(3.75g)이 골드바 각인에 더해져요. 10돈이 모이면 1냥 축하가 열려요.</p></div>
+    <div class="card"><h2>오늘의 재물운</h2><p>날마다 다른 덕담 한 줄. 아침 8시 알림과 홈 화면 위젯으로도 받아볼 수 있어요.</p></div>
+  </div>
+
+  <div class="units">
+    <div><b>1돈</b>3.75g</div>
+    <div><b>1냥</b>10돈 · 37.5g</div>
+    <div><b>10냥</b>황금 대금고</div>
+  </div>
+
+  <footer>
+    <span>© 2026 오상플레이</span>
+    <span><a href="privacy.html">개인정보처리방침</a> · 문의 dkwkehd2@gmail.com</span>
+  </footer>
+</div>
+</body>
+</html>
