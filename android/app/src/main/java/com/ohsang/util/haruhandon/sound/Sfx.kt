@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.sound
+package com.ohsang.util.haruhandon.sound
 
 import android.content.Context
 import android.media.AudioAttributes
@@ -6,7 +6,7 @@ import android.media.SoundPool
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
-import com.ohsang.play.haruhandon.R
+import com.ohsang.util.haruhandon.R
 import kotlin.random.Random
 
 enum class Sound(val res: Int) {

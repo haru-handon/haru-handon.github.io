@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.ohsang.play.haruhandon"
+    namespace = "com.ohsang.util.haruhandon"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.ohsang.play.haruhandon"
+        applicationId = "com.ohsang.util.haruhandon"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

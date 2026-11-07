@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.ui
+package com.ohsang.util.haruhandon.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -50,9 +50,9 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import com.ohsang.play.haruhandon.data.donLabel
-import com.ohsang.play.haruhandon.data.gramLabel
-import com.ohsang.play.haruhandon.data.serialLabel
+import com.ohsang.util.haruhandon.data.donLabel
+import com.ohsang.util.haruhandon.data.gramLabel
+import com.ohsang.util.haruhandon.data.serialLabel
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.cos

@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.ui
+package com.ohsang.util.haruhandon.ui
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat

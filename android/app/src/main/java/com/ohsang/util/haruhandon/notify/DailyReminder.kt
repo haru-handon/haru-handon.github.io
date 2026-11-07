@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.notify
+package com.ohsang.util.haruhandon.notify
 
 import android.Manifest
 import android.app.AlarmManager
@@ -13,10 +13,10 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.ohsang.play.haruhandon.MainActivity
-import com.ohsang.play.haruhandon.R
-import com.ohsang.play.haruhandon.data.HandonStore
-import com.ohsang.play.haruhandon.widget.HandonWidgets
+import com.ohsang.util.haruhandon.MainActivity
+import com.ohsang.util.haruhandon.R
+import com.ohsang.util.haruhandon.data.HandonStore
+import com.ohsang.util.haruhandon.widget.HandonWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

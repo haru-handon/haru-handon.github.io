@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.data
+package com.ohsang.util.haruhandon.data
 
 import java.time.LocalDate
 

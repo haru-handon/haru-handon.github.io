@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon
+package com.ohsang.util.haruhandon
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -12,10 +12,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import com.ohsang.play.haruhandon.data.HandonStore
-import com.ohsang.play.haruhandon.notify.DailyReminder
-import com.ohsang.play.haruhandon.sound.Sfx
-import com.ohsang.play.haruhandon.ui.HomeScreen
+import com.ohsang.util.haruhandon.data.HandonStore
+import com.ohsang.util.haruhandon.notify.DailyReminder
+import com.ohsang.util.haruhandon.sound.Sfx
+import com.ohsang.util.haruhandon.ui.HomeScreen
 
 class MainActivity : ComponentActivity() {
 

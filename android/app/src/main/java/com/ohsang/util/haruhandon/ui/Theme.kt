@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.ui
+package com.ohsang.util.haruhandon.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily

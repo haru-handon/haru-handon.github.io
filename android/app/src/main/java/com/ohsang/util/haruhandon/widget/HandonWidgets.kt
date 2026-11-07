@@ -1,4 +1,4 @@
-package com.ohsang.play.haruhandon.widget
+package com.ohsang.util.haruhandon.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -31,12 +31,12 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.ohsang.play.haruhandon.MainActivity
-import com.ohsang.play.haruhandon.R
-import com.ohsang.play.haruhandon.data.Fortunes
-import com.ohsang.play.haruhandon.data.HandonStore
-import com.ohsang.play.haruhandon.data.donLabel
-import com.ohsang.play.haruhandon.data.gramLabel
+import com.ohsang.util.haruhandon.MainActivity
+import com.ohsang.util.haruhandon.R
+import com.ohsang.util.haruhandon.data.Fortunes
+import com.ohsang.util.haruhandon.data.HandonStore
+import com.ohsang.util.haruhandon.data.donLabel
+import com.ohsang.util.haruhandon.data.gramLabel
 
 object HandonWidgets {
     suspend fun updateAll(context: Context) {

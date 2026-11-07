@@ -5,7 +5,7 @@
 "행복하세요, 돈 많이 버세요"라는 마음을 담은 행운 앱입니다. 하루 한 번 금고를 열면 금 1돈이 골드바에 더해지고, 오늘의 재물운 덕담을 받습니다.
 
 - 개발: 오상플레이
-- 패키지명 / 번들 ID: `com.ohsang.play.haruhandon`
+- 패키지명 / 번들 ID: `com.ohsang.util.haruhandon`
 - 소개 페이지: https://haru-handon.github.io (예정: haru-handon.ohsangplay.com)
 - 광고: 첫 출시는 광고 없음 (추후 "출석 복구" 보상형 광고만 검토)
 
