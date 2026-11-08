@@ -49,7 +49,7 @@ class WidgetPreviewActivity : Activity() {
             this.text = text
             setTextColor(parent.tag as Int)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, dp(6), 0, dp(6))
+            setPadding(0, dp(4), 0, dp(0))
         })
 
         fun addWidget(parent: LinearLayout, cls: Class<*>, wDp: Int, hDp: Int) {
@@ -73,9 +73,8 @@ class WidgetPreviewActivity : Activity() {
             }
             mgr.updateAppWidgetOptions(id, opts)
             val view = host.createView(this, id, mgr.getAppWidgetInfo(id))
-            // 요즘 런처(안드로이드 12+)처럼 기본 안쪽 여백 없이
-            view.setPadding(0, 0, 0, 0)
-            parent.addView(view, LinearLayout.LayoutParams(dp(wDp), dp(hDp)))
+            // 이 호스트는 사방 8dp 여백을 강제로 넣으므로, 그만큼 키워서 위젯 칸이 실제 크기가 되게 한다
+            parent.addView(view, LinearLayout.LayoutParams(dp(wDp + 16), dp(hDp + 16)))
         }
 
         val dark = section(
