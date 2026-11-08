@@ -9,7 +9,7 @@ from bar3d import render_bar
 RES = pathlib.Path(__file__).resolve().parents[2] / "android/app/src/main/res"
 DENSITIES = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
 
-base = render_bar(1296, yaw=-22, pitch=-12, fill=0.53)
+base = render_bar(1296, yaw=0, pitch=-14, fill=0.55)
 
 # 은은한 금빛 후광 (108dp 기준 반지름 34dp)
 S = base.size[0]

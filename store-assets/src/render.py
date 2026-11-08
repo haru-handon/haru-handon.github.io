@@ -15,8 +15,8 @@ def data_uri(img):
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
-ICON_BAR = data_uri(render_bar(1024, yaw=-22, pitch=-12, fill=0.86))
-FEATURE_BAR = data_uri(render_bar(900, yaw=-28, pitch=-10, fill=0.9))
+ICON_BAR = data_uri(render_bar(1024, yaw=0, pitch=-14, fill=0.86))
+FEATURE_BAR = data_uri(render_bar(900, yaw=0, pitch=-12, fill=0.9))
 
 ICON = f"""<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{{margin:0;width:512px;height:512px;overflow:hidden;background:#1e2125;position:relative}} svg{{position:absolute;left:0;top:0}}</style></head><body>
