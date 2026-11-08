@@ -1,5 +1,6 @@
 package com.ohsang.util.haruhandon.ui
 
+import android.content.Context
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
@@ -19,7 +20,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -51,6 +52,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.ohsang.util.haruhandon.data.donLabel
 import com.ohsang.util.haruhandon.data.gramLabel
@@ -58,6 +62,7 @@ import com.ohsang.util.haruhandon.data.serialLabel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -190,87 +195,54 @@ fun GoldBar(don: Int, motion: BarMotion, dim: Boolean, modifier: Modifier = Modi
             .aspectRatio(W / H)
             .drawWithCache {
                 val s = size.width / W
-                val front = renderFace(measurer, s, don, back = false)
-                val back = renderFace(measurer, s, don, back = true)
-                val plate = Path().apply { addRoundRect(RoundRect(0f, 0f, W, H, CornerRadius(14f))) }
-                val dimFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.1f) })
-                val src = floatArrayOf(0f, 0f, W * s, 0f, W * s, H * s, 0f, H * s)
-                val faceMatrix = android.graphics.Matrix()
-                val quad = Path()
+                val front = renderFace(measurer, s, don, back = false, layoutDirection)
+                val back = renderFace(measurer, s, don, back = true, layoutDirection)
+                val tools = SlabTools(BarLayout.Portrait, s)
 
                 onDrawBehind {
-                    val cam = Slab(
+                    drawSlab(
+                        front, back, tools,
                         yawDeg = motion.totalY + REST_YAW,
                         pitchDeg = REST_PITCH + motion.swayX,
-                        pxPerUnit = s,
-                        origin = center,
+                        dim = dim,
+                        relativeDeg = motion.relative,
+                        tiltX = motion.swayX,
+                        shine = motion.shine.value,
                     )
-                    val half = THICK / 2f
-
-                    // 1) 옆면: 둥근 테두리를 따라 이어진 면들 중 카메라를 향한 것만, 방향에 따라 빛을 계산
-                    val n = OUTLINE.size
-                    for (i in 0 until n) {
-                        val p0 = OUTLINE[i]
-                        val p1 = OUTLINE[(i + 1) % n]
-                        val tx = p1.x - p0.x
-                        val ty = p1.y - p0.y
-                        val len = kotlin.math.sqrt(tx * tx + ty * ty)
-                        if (len < 1e-3f) continue
-                        val nx = ty / len
-                        val ny = -tx / len
-                        if (!cam.facesCamera(nx, ny, 0f, (p0.x + p1.x) / 2f, (p0.y + p1.y) / 2f, 0f)) continue
-                        val a = cam.project(p0.x, p0.y, half)
-                        val b = cam.project(p1.x, p1.y, half)
-                        val c = cam.project(p1.x, p1.y, -half)
-                        val d = cam.project(p0.x, p0.y, -half)
-                        quad.reset()
-                        quad.moveTo(a.x, a.y); quad.lineTo(b.x, b.y); quad.lineTo(c.x, c.y); quad.lineTo(d.x, d.y); quad.close()
-                        val col = cam.edgeColor(nx, ny, 0f, dim)
-                        // 면을 따라 밝은 쪽 → 어두운 쪽으로 살짝 흐르게 해서 금속 느낌을 낸다
-                        val brush = Brush.linearGradient(
-                            0f to lerp(col, Color(0xFFFFF0C0), 0.12f),
-                            1f to lerp(col, EdgeDark, 0.22f),
-                            start = Offset((a.x + d.x) / 2f, (a.y + d.y) / 2f),
-                            end = Offset((b.x + c.x) / 2f, (b.y + c.y) / 2f),
-                        )
-                        drawPath(quad, brush)
-                        drawPath(quad, brush, style = Stroke(1.2f)) // 면 사이 틈 메우기
-                    }
-
-                    // 2) 카메라를 향한 큰 면(앞 또는 뒤)에 그림을 원근 변형으로 입힌다
-                    val showFront = cam.facesCamera(0f, 0f, 1f, 0f, 0f, half)
-                    val z = if (showFront) half else -half
-                    // 뒷면은 뒤에서 보므로 그림의 왼쪽이 판의 +x 쪽에 온다
-                    val xl = if (showFront) -W / 2f else W / 2f
-                    val xr = -xl
-                    val tl = cam.project(xl, -H / 2f, z)
-                    val tr = cam.project(xr, -H / 2f, z)
-                    val br = cam.project(xr, H / 2f, z)
-                    val bl = cam.project(xl, H / 2f, z)
-                    val dst = floatArrayOf(tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y)
-                    if (faceMatrix.setPolyToPoly(src, 0, dst, 0, 4)) {
-                        // 원근(perspective) 행렬은 안드로이드 캔버스에 직접 건다
-                        drawIntoCanvas { it.nativeCanvas.save(); it.nativeCanvas.concat(faceMatrix) }
-                        drawImage(if (showFront) front else back, colorFilter = if (dim) dimFilter else null)
-                        scale(s, s, pivot = Offset.Zero) {
-                            clipPath(plate) {
-                                if (dim) {
-                                    drawRect(Color.Black.copy(alpha = 0.45f), size = Size(W, H))
-                                } else {
-                                    drawReflections(motion.relative, motion.swayX, motion.shine.value)
-                                }
-                            }
-                        }
-                        drawIntoCanvas { it.nativeCanvas.restore() }
-                    }
                 }
             }
     )
 }
 
+/**
+ * 위젯용 골드바 그림. 앱과 같은 3D 방식으로 그리고, 각인에는 실제 모은 무게가 들어간다.
+ * [landscape]면 가로로 누운 골드바(4×1 위젯용).
+ */
+fun renderGoldBarBitmap(
+    context: Context,
+    don: Int,
+    landscape: Boolean,
+    longSidePx: Int,
+    pitchDeg: Float = -8f,
+): android.graphics.Bitmap {
+    val layout = if (landscape) BarLayout.Landscape else BarLayout.Portrait
+    val s = longSidePx / max(layout.w, layout.h)
+    val cw = ceil(layout.w * s * 1.1f).toInt()
+    val ch = ceil(layout.h * s * 1.14f).toInt()
+    val density = Density(context)
+    val measurer = TextMeasurer(createFontFamilyResolver(context), density, LayoutDirection.Ltr)
+    val front = density.renderFace(measurer, s, don, back = false, LayoutDirection.Ltr, layout)
+    val tools = SlabTools(layout, s)
+    val bmp = ImageBitmap(cw, ch)
+    CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(bmp), Size(cw.toFloat(), ch.toFloat())) {
+        drawSlab(front, front, tools, yawDeg = 0f, pitchDeg = pitchDeg, dim = don == 0, relativeDeg = 0f, tiltX = 0f, shine = -1f)
+    }
+    return bmp.asAndroidBitmap()
+}
+
 /* ---------- 3D 판 (원근 투영) ---------- */
 
-/** 판 두께 (설계 좌표, 폭 200 기준) */
+/** 판 두께 (설계 좌표, 짧은 변 200 기준) */
 private const val THICK = 30f
 
 /** 카메라까지 거리. 작을수록 원근이 세다 */
@@ -280,11 +252,17 @@ private const val CAM_DIST = 900f
 private const val REST_YAW = 0f
 private const val REST_PITCH = 0f
 
+/** 세로(앱, 2×2 위젯) / 가로(4×1 위젯) 골드바 */
+private enum class BarLayout(val w: Float, val h: Float) {
+    Portrait(200f, 300f),
+    Landscape(300f, 200f),
+}
+
 /** 둥근 모서리 사각형 테두리 (판 중심 기준, 화면 좌표처럼 y는 아래로, 시계 방향) */
-private val OUTLINE: List<Offset> = run {
+private fun outlineOf(w: Float, h: Float): List<Offset> {
     val r = 14f
-    val hw = W / 2f
-    val hh = H / 2f
+    val hw = w / 2f
+    val hh = h / 2f
     val seg = 6
     val corners = listOf(
         Offset(-hw + r, -hh + r) to 180f,
@@ -292,13 +270,98 @@ private val OUTLINE: List<Offset> = run {
         Offset(hw - r, hh - r) to 0f,
         Offset(-hw + r, hh - r) to 90f,
     )
-    buildList {
+    return buildList {
         corners.forEach { (c, start) ->
             for (k in 0..seg) {
                 val a = Math.toRadians((start + 90f * k / seg).toDouble())
                 add(Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat()))
             }
         }
+    }
+}
+
+/** 한 골드바를 그리는 데 다시 쓰는 것들 */
+private class SlabTools(val layout: BarLayout, val s: Float) {
+    val outline = outlineOf(layout.w, layout.h)
+    val plate = Path().apply { addRoundRect(RoundRect(0f, 0f, layout.w, layout.h, CornerRadius(14f))) }
+    val dimFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.1f) })
+    val src = floatArrayOf(0f, 0f, layout.w * s, 0f, layout.w * s, layout.h * s, 0f, layout.h * s)
+    val faceMatrix = android.graphics.Matrix()
+    val quad = Path()
+}
+
+private fun DrawScope.drawSlab(
+    front: ImageBitmap,
+    back: ImageBitmap,
+    t: SlabTools,
+    yawDeg: Float,
+    pitchDeg: Float,
+    dim: Boolean,
+    relativeDeg: Float,
+    tiltX: Float,
+    shine: Float,
+) {
+    val w = t.layout.w
+    val h = t.layout.h
+    val cam = Slab(yawDeg, pitchDeg, t.s, center)
+    val half = THICK / 2f
+    val quad = t.quad
+
+    // 1) 옆면: 둥근 테두리를 따라 이어진 면들 중 카메라를 향한 것만, 방향에 따라 빛을 계산
+    val n = t.outline.size
+    for (i in 0 until n) {
+        val p0 = t.outline[i]
+        val p1 = t.outline[(i + 1) % n]
+        val tx = p1.x - p0.x
+        val ty = p1.y - p0.y
+        val len = kotlin.math.sqrt(tx * tx + ty * ty)
+        if (len < 1e-3f) continue
+        val nx = ty / len
+        val ny = -tx / len
+        if (!cam.facesCamera(nx, ny, 0f, (p0.x + p1.x) / 2f, (p0.y + p1.y) / 2f, 0f)) continue
+        val a = cam.project(p0.x, p0.y, half)
+        val b = cam.project(p1.x, p1.y, half)
+        val c = cam.project(p1.x, p1.y, -half)
+        val d = cam.project(p0.x, p0.y, -half)
+        quad.reset()
+        quad.moveTo(a.x, a.y); quad.lineTo(b.x, b.y); quad.lineTo(c.x, c.y); quad.lineTo(d.x, d.y); quad.close()
+        val col = cam.edgeColor(nx, ny, 0f, dim)
+        // 면을 따라 밝은 쪽 → 어두운 쪽으로 살짝 흐르게 해서 금속 느낌을 낸다
+        val brush = Brush.linearGradient(
+            0f to lerp(col, Color(0xFFFFF0C0), 0.12f),
+            1f to lerp(col, EdgeDark, 0.22f),
+            start = Offset((a.x + d.x) / 2f, (a.y + d.y) / 2f),
+            end = Offset((b.x + c.x) / 2f, (b.y + c.y) / 2f),
+        )
+        drawPath(quad, brush)
+        drawPath(quad, brush, style = Stroke(1.2f)) // 면 사이 틈 메우기
+    }
+
+    // 2) 카메라를 향한 큰 면(앞 또는 뒤)에 그림을 원근 변형으로 입힌다
+    val showFront = cam.facesCamera(0f, 0f, 1f, 0f, 0f, half)
+    val z = if (showFront) half else -half
+    // 뒷면은 뒤에서 보므로 그림의 왼쪽이 판의 +x 쪽에 온다
+    val xl = if (showFront) -w / 2f else w / 2f
+    val xr = -xl
+    val tl = cam.project(xl, -h / 2f, z)
+    val tr = cam.project(xr, -h / 2f, z)
+    val br = cam.project(xr, h / 2f, z)
+    val bl = cam.project(xl, h / 2f, z)
+    val dst = floatArrayOf(tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y)
+    if (t.faceMatrix.setPolyToPoly(t.src, 0, dst, 0, 4)) {
+        // 원근(perspective) 행렬은 안드로이드 캔버스에 직접 건다
+        drawIntoCanvas { it.nativeCanvas.save(); it.nativeCanvas.concat(t.faceMatrix) }
+        drawImage(if (showFront) front else back, colorFilter = if (dim) t.dimFilter else null)
+        scale(t.s, t.s, pivot = Offset.Zero) {
+            clipPath(t.plate) {
+                if (dim) {
+                    drawRect(Color.Black.copy(alpha = 0.45f), size = Size(w, h))
+                } else {
+                    drawReflections(w, relativeDeg, tiltX, shine)
+                }
+            }
+        }
+        drawIntoCanvas { it.nativeCanvas.restore() }
     }
 }
 
@@ -372,7 +435,7 @@ private class Slab(yawDeg: Float, pitchDeg: Float, private val pxPerUnit: Float,
 
 private class Engr(val layout: TextLayoutResult, val cx: Float, val baseline: Float)
 
-private fun CacheDrawScope.measureText(
+private fun Density.measureText(
     measurer: TextMeasurer, text: String, px: Float, family: FontFamily,
     weight: FontWeight, spacing: Float = 0f,
 ): TextLayoutResult = measurer.measure(
@@ -385,50 +448,83 @@ private fun CacheDrawScope.measureText(
     ),
 )
 
-private fun CacheDrawScope.renderFace(measurer: TextMeasurer, s: Float, don: Int, back: Boolean): ImageBitmap {
-    val wPx = ceil(W * s).toInt().coerceAtLeast(1)
-    val hPx = ceil(H * s).toInt().coerceAtLeast(1)
+private fun Density.renderFace(
+    measurer: TextMeasurer,
+    s: Float,
+    don: Int,
+    back: Boolean,
+    layoutDirection: LayoutDirection,
+    layout: BarLayout = BarLayout.Portrait,
+): ImageBitmap {
+    val w = layout.w
+    val h = layout.h
+    val wPx = ceil(w * s).toInt().coerceAtLeast(1)
+    val hPx = ceil(h * s).toInt().coerceAtLeast(1)
     val bmp = ImageBitmap(wPx, hPx)
 
     val texts: List<Engr>
     var pattern: TextLayoutResult? = null
-    if (!back) {
-        texts = listOf(
-            Engr(measureText(measurer, "金", 25f, SerifFamily, FontWeight.ExtraBold), 100f, 67f),
-            Engr(measureText(measurer, "FINE GOLD", 10f, SansFamily, FontWeight.SemiBold, 4f), 100f, 108f),
-            Engr(measureText(measurer, "999.9", 31f, SerifFamily, FontWeight.ExtraBold, 1f), 100f, 143f),
-            Engr(measureText(measurer, donLabel(don), 25f, SerifFamily, FontWeight.ExtraBold), 100f, 191f),
-            Engr(measureText(measurer, gramLabel(don), 10.5f, SansFamily, FontWeight.Medium, 1.5f), 100f, 211f),
-            Engr(measureText(measurer, "하루 한돈", 10f, SerifFamily, FontWeight.Bold, 3f), 100f, 248f),
-            Engr(measureText(measurer, serialLabel(don), 8f, MonoFamily, FontWeight.Medium, 1.2f), 100f, 266f),
-        )
-    } else {
-        pattern = measureText(measurer, "金", 10f, SerifFamily, FontWeight.ExtraBold)
-        texts = listOf(
-            Engr(measureText(measurer, "OHSANG VAULT", 8.5f, SansFamily, FontWeight.SemiBold, 3f), 100f, 43f),
-            Engr(measureText(measurer, "福", 64f, SerifFamily, FontWeight.ExtraBold), 100f, 151f),
-            Engr(measureText(measurer, "행복하세요", 17f, SerifFamily, FontWeight.ExtraBold, 1f), 100f, 218f),
-            Engr(measureText(measurer, "돈 많이 버세요", 12f, SerifFamily, FontWeight.Bold, 1f), 100f, 240f),
-            Engr(measureText(measurer, serialLabel(don), 8f, MonoFamily, FontWeight.Medium, 1.2f), 100f, 267f),
-        )
+    when {
+        layout == BarLayout.Landscape -> {
+            texts = listOf(
+                Engr(measureText(measurer, "金", 25f, SerifFamily, FontWeight.ExtraBold), 64f, 92f),
+                Engr(measureText(measurer, "하루 한돈", 9.5f, SerifFamily, FontWeight.Bold, 2.5f), 64f, 138f),
+                Engr(measureText(measurer, serialLabel(don), 6.5f, MonoFamily, FontWeight.Medium, 0.8f), 64f, 156f),
+                Engr(measureText(measurer, "FINE GOLD", 10f, SansFamily, FontWeight.SemiBold, 4f), 196f, 56f),
+                Engr(measureText(measurer, "999.9", 31f, SerifFamily, FontWeight.ExtraBold, 1f), 196f, 92f),
+                Engr(measureText(measurer, donLabel(don), 25f, SerifFamily, FontWeight.ExtraBold), 196f, 136f),
+                Engr(measureText(measurer, gramLabel(don), 10.5f, SansFamily, FontWeight.Medium, 1.5f), 196f, 156f),
+            )
+        }
+        !back -> {
+            texts = listOf(
+                Engr(measureText(measurer, "金", 25f, SerifFamily, FontWeight.ExtraBold), 100f, 67f),
+                Engr(measureText(measurer, "FINE GOLD", 10f, SansFamily, FontWeight.SemiBold, 4f), 100f, 108f),
+                Engr(measureText(measurer, "999.9", 31f, SerifFamily, FontWeight.ExtraBold, 1f), 100f, 143f),
+                Engr(measureText(measurer, donLabel(don), 25f, SerifFamily, FontWeight.ExtraBold), 100f, 191f),
+                Engr(measureText(measurer, gramLabel(don), 10.5f, SansFamily, FontWeight.Medium, 1.5f), 100f, 211f),
+                Engr(measureText(measurer, "하루 한돈", 10f, SerifFamily, FontWeight.Bold, 3f), 100f, 248f),
+                Engr(measureText(measurer, serialLabel(don), 8f, MonoFamily, FontWeight.Medium, 1.2f), 100f, 266f),
+            )
+        }
+        else -> {
+            pattern = measureText(measurer, "金", 10f, SerifFamily, FontWeight.ExtraBold)
+            texts = listOf(
+                Engr(measureText(measurer, "OHSANG VAULT", 8.5f, SansFamily, FontWeight.SemiBold, 3f), 100f, 43f),
+                Engr(measureText(measurer, "福", 64f, SerifFamily, FontWeight.ExtraBold), 100f, 151f),
+                Engr(measureText(measurer, "행복하세요", 17f, SerifFamily, FontWeight.ExtraBold, 1f), 100f, 218f),
+                Engr(measureText(measurer, "돈 많이 버세요", 12f, SerifFamily, FontWeight.Bold, 1f), 100f, 240f),
+                Engr(measureText(measurer, serialLabel(don), 8f, MonoFamily, FontWeight.Medium, 1.2f), 100f, 267f),
+            )
+        }
     }
 
     CanvasDrawScope().draw(this, layoutDirection, Canvas(bmp), Size(wPx.toFloat(), hPx.toFloat())) {
         scale(s, s, pivot = Offset.Zero) {
-            drawPlate()
-            if (back) {
-                drawBackPattern(pattern!!)
-                // 각인 자리는 무늬 없이 매끈하게
-                drawRoundRect(FieldBrush, Offset(44f, 30f), Size(112f, 18f), CornerRadius(4f))
-                drawCircle(FieldBrush, 56f, Offset(100f, 128f))
-                drawRoundRect(FieldBrush, Offset(30f, 194f), Size(140f, 82f), CornerRadius(6f))
-                engraveCircle(Offset(100f, 128f), 52f, 2.2f)
-                engraveCircle(Offset(100f, 128f), 45f, 0.8f)
-                engraveLine(Offset(60f, 252f), Offset(140f, 252f), 1f)
-            } else {
-                engraveCircle(Offset(100f, 58f), 25f, 2f)
-                engraveCircle(Offset(100f, 58f), 20f, 0.8f)
-                engraveLine(Offset(50f, 157f), Offset(150f, 157f), 1.2f)
+            drawPlate(w, h)
+            when {
+                layout == BarLayout.Landscape -> {
+                    engraveCircle(Offset(64f, 84f), 25f, 2f)
+                    engraveCircle(Offset(64f, 84f), 20f, 0.8f)
+                    engraveLine(Offset(118f, 40f), Offset(118f, 160f), 1f)
+                    engraveLine(Offset(140f, 106f), Offset(252f, 106f), 1.2f)
+                }
+                back -> {
+                    drawBackPattern(pattern!!)
+                    // 각인 자리는 무늬 없이 매끈하게
+                    val field = fieldBrush(w, h)
+                    drawRoundRect(field, Offset(44f, 30f), Size(112f, 18f), CornerRadius(4f))
+                    drawCircle(field, 56f, Offset(100f, 128f))
+                    drawRoundRect(field, Offset(30f, 194f), Size(140f, 82f), CornerRadius(6f))
+                    engraveCircle(Offset(100f, 128f), 52f, 2.2f)
+                    engraveCircle(Offset(100f, 128f), 45f, 0.8f)
+                    engraveLine(Offset(60f, 252f), Offset(140f, 252f), 1f)
+                }
+                else -> {
+                    engraveCircle(Offset(100f, 58f), 25f, 2f)
+                    engraveCircle(Offset(100f, 58f), 20f, 0.8f)
+                    engraveLine(Offset(50f, 157f), Offset(150f, 157f), 1.2f)
+                }
             }
             texts.forEach { engraveText(it) }
         }
@@ -436,32 +532,35 @@ private fun CacheDrawScope.renderFace(measurer: TextMeasurer, s: Float, don: Int
     return bmp
 }
 
-private val PlateBrush = Brush.linearGradient(
+private fun plateBrush(w: Float, h: Float) = Brush.linearGradient(
     0f to Color(0xFFFFF2C2), 0.16f to Color(0xFFEBC25A), 0.3f to Color(0xFFB7871F),
     0.44f to Color(0xFFF6DC8C), 0.58f to Color(0xFFD7A538), 0.76f to Color(0xFF9A6B14),
     0.9f to Color(0xFFD9AC45), 1f to Color(0xFFF3D27A),
-    start = Offset(0f, 0f), end = Offset(W, H),
-)
-private val FieldBrush = Brush.linearGradient(
-    0f to Color(0xFFB98523), 0.3f to Color(0xFFE7BD55), 0.5f to Color(0xFFFBE5A0),
-    0.68f to Color(0xFFE2B44A), 1f to Color(0xFFA7771B),
-    start = Offset(0f, H), end = Offset(W, 0f),
-)
-private val BevelBrush = Brush.linearGradient(
-    0f to Color(0xFFFFFAE6), 0.5f to Color(0xFFD9A940), 1f to Color(0xFF6E4A0B),
-    start = Offset(0f, 0f), end = Offset(W, H),
-)
-private val BevelInBrush = Brush.linearGradient(
-    0f to Color(0xFFFFF6D2), 0.5f to Color(0xFFC8952E), 1f to Color(0xFF5F3F08),
-    start = Offset(W, H), end = Offset(0f, 0f),
+    start = Offset(0f, 0f), end = Offset(w, h),
 )
 
-private fun DrawScope.drawPlate() {
-    drawRoundRect(PlateBrush, Offset.Zero, Size(W, H), CornerRadius(14f))
-    drawRoundRect(Color(0x99FFF7D8), Offset(1f, 1f), Size(198f, 298f), CornerRadius(13.5f), style = Stroke(1f))
-    drawRoundRect(BevelBrush, Offset(11f, 11f), Size(178f, 278f), CornerRadius(8f), style = Stroke(3f))
-    drawRoundRect(FieldBrush, Offset(14f, 14f), Size(172f, 272f), CornerRadius(6f))
-    drawRoundRect(BevelInBrush, Offset(14f, 14f), Size(172f, 272f), CornerRadius(6f), style = Stroke(1.6f))
+private fun fieldBrush(w: Float, h: Float) = Brush.linearGradient(
+    0f to Color(0xFFB98523), 0.3f to Color(0xFFE7BD55), 0.5f to Color(0xFFFBE5A0),
+    0.68f to Color(0xFFE2B44A), 1f to Color(0xFFA7771B),
+    start = Offset(0f, h), end = Offset(w, 0f),
+)
+
+private fun bevelBrush(w: Float, h: Float) = Brush.linearGradient(
+    0f to Color(0xFFFFFAE6), 0.5f to Color(0xFFD9A940), 1f to Color(0xFF6E4A0B),
+    start = Offset(0f, 0f), end = Offset(w, h),
+)
+
+private fun bevelInBrush(w: Float, h: Float) = Brush.linearGradient(
+    0f to Color(0xFFFFF6D2), 0.5f to Color(0xFFC8952E), 1f to Color(0xFF5F3F08),
+    start = Offset(w, h), end = Offset(0f, 0f),
+)
+
+private fun DrawScope.drawPlate(w: Float, h: Float) {
+    drawRoundRect(plateBrush(w, h), Offset.Zero, Size(w, h), CornerRadius(14f))
+    drawRoundRect(Color(0x99FFF7D8), Offset(1f, 1f), Size(w - 2f, h - 2f), CornerRadius(13.5f), style = Stroke(1f))
+    drawRoundRect(bevelBrush(w, h), Offset(11f, 11f), Size(w - 22f, h - 22f), CornerRadius(8f), style = Stroke(3f))
+    drawRoundRect(fieldBrush(w, h), Offset(14f, 14f), Size(w - 28f, h - 28f), CornerRadius(6f))
+    drawRoundRect(bevelInBrush(w, h), Offset(14f, 14f), Size(w - 28f, h - 28f), CornerRadius(6f), style = Stroke(1.6f))
 }
 
 /** 뒷면: 비스듬히 반복되는 金 무늬 */
@@ -502,17 +601,17 @@ private fun DrawScope.engraveLine(a: Offset, b: Offset, w: Float) {
     drawLine(Palette.Engrave, a, b, w)
 }
 
-/* ---------- 매 프레임 반사광 ---------- */
+/* ---------- 반사광 ---------- */
 
 /** CSS skewX(-22deg)와 같은 기울임 */
 private val Skew = Matrix().apply { values[Matrix.SkewX] = -0.404f }
 
-private fun DrawScope.drawReflections(relativeDeg: Float, tiltX: Float, shine: Float) {
-    val x = 80f + sin(Math.toRadians(relativeDeg.toDouble())).toFloat() * 260f - tiltX * 2.5f
+private fun DrawScope.drawReflections(w: Float, relativeDeg: Float, tiltX: Float, shine: Float) {
+    val x = w * 0.4f + sin(Math.toRadians(relativeDeg.toDouble())).toFloat() * 260f - tiltX * 2.5f
     withTransform({ transform(Skew) }) {
         band(x - 40f, 54f, 0.55f)
         band(x + 22f, 16f, 0.38f)
-        if (shine >= 0f) band(-150f + shine * 570f - 60f, 80f, 0.95f)
+        if (shine >= 0f) band(-150f + shine * (w + 270f) - 60f, 80f, 0.95f)
     }
 }
 

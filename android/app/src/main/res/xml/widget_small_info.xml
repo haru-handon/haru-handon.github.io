@@ -7,6 +7,6 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:previewImage="@drawable/goldbar_mini"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

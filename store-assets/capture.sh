@@ -110,5 +110,13 @@ sleep 0.6
 shot 06-edge
 adb shell input motionevent UP 760 $CY
 
+# 7: 홈 화면 위젯 (디버그 빌드 전용 미리보기 화면)
+seed 12
+adb shell appwidget grantbind --package "$PKG" --user 0 || adb shell cmd appwidget grantbind --package "$PKG" --user 0 || true
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.WidgetPreviewActivity" >/dev/null
+sleep 9
+shot 07-widgets
+
 ls -la "$OUT"
 # rerun 1794078871
