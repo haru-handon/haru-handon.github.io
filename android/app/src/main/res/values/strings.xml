@@ -4,7 +4,7 @@
     <string name="widget_small_label">하루 한돈 골드바</string>
     <string name="widget_wide_label">하루 한돈 골드바와 덕담</string>
     <string name="widget_small_desc">모은 금의 무게가 새겨진 골드바를 크게 보여줘요</string>
-    <string name="widget_wide_desc">가로 골드바와 모은 금의 무게, 오늘의 덕담을 보여줘요</string>
+    <string name="widget_wide_desc">골드바와 함께 오늘의 행운 문구를 보여줘요</string>
     <string name="channel_name">오늘의 금 도착 알림</string>
     <string name="channel_desc">매일 아침 오늘의 금 1돈이 도착하면 알려줘요</string>
 </resources>
