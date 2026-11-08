@@ -73,6 +73,8 @@ class WidgetPreviewActivity : Activity() {
             }
             mgr.updateAppWidgetOptions(id, opts)
             val view = host.createView(this, id, mgr.getAppWidgetInfo(id))
+            // 요즘 런처(안드로이드 12+)처럼 기본 안쪽 여백 없이
+            view.setPadding(0, 0, 0, 0)
             parent.addView(view, LinearLayout.LayoutParams(dp(wDp), dp(hDp)))
         }
 

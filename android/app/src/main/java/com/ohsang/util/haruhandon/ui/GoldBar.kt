@@ -238,22 +238,25 @@ fun renderGoldBarBitmap(
     CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(bmp), Size(cw.toFloat(), ch.toFloat())) {
         drawSlab(front, front, tools, yawDeg = 0f, pitchDeg = pitchDeg, dim = don == 0, relativeDeg = 0f, tiltX = 0f, shine = -1f)
     }
-    val bar = bmp.asAndroidBitmap()
-    if (!shadow) return bar
-    // 배경 없는 위젯용: 골드바 모양을 따라 아래로 번지는 그림자를 그림에 넣는다
-    val blur = longSidePx * 0.035f
-    val dy = longSidePx * 0.035f
-    val pad = ceil(blur * 2f + dy).toInt()
-    val out = android.graphics.Bitmap.createBitmap(cw + pad * 2, ch + pad * 2, android.graphics.Bitmap.Config.ARGB_8888)
+    val raw = bmp.asAndroidBitmap()
+    if (!shadow) return raw
+    // 배경 없는 위젯용: 골드바만 남기고 잘라 낸 뒤, 모양을 따라 아래로 번지는 그림자를 넣는다
+    val bar = trimTransparent(raw)
+    val blur = longSidePx * 0.025f
+    val dy = longSidePx * 0.03f
+    val side = ceil(blur * 2.6f).toInt()
+    val top = ceil((blur * 2.6f - dy).coerceAtLeast(0f)).toInt()
+    val bottom = ceil(blur * 2.6f + dy).toInt()
+    val out = android.graphics.Bitmap.createBitmap(bar.width + side * 2, bar.height + top + bottom, android.graphics.Bitmap.Config.ARGB_8888)
     val c = android.graphics.Canvas(out)
     val off = IntArray(2)
     val mask = bar.extractAlpha(
         android.graphics.Paint().apply { maskFilter = android.graphics.BlurMaskFilter(blur, android.graphics.BlurMaskFilter.Blur.NORMAL) },
         off,
     )
-    c.drawBitmap(mask, pad + off[0].toFloat(), pad + off[1] + dy, android.graphics.Paint().apply { color = android.graphics.Color.argb(150, 0, 0, 0) })
-    c.drawBitmap(bar, pad.toFloat(), pad.toFloat(), null)
-    return trimTransparent(out)
+    c.drawBitmap(mask, side + off[0].toFloat(), top + off[1] + dy, android.graphics.Paint().apply { color = android.graphics.Color.argb(140, 0, 0, 0) })
+    c.drawBitmap(bar, side.toFloat(), top.toFloat(), null)
+    return out
 }
 
 /** 거의 투명한 가장자리를 잘라 내 위젯 칸을 골드바가 최대한 채우게 한다 */
@@ -264,7 +267,7 @@ private fun trimTransparent(b: android.graphics.Bitmap): android.graphics.Bitmap
     b.getPixels(px, 0, w, 0, 0, w, h)
     var l = w; var t = h; var r = -1; var bt = -1
     for (y in 0 until h) for (x in 0 until w) {
-        if ((px[y * w + x] ushr 24) > 10) {
+        if ((px[y * w + x] ushr 24) > 40) {
             if (x < l) l = x
             if (x > r) r = x
             if (y < t) t = y
