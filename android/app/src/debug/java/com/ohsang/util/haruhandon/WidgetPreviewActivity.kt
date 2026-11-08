@@ -35,28 +35,28 @@ class WidgetPreviewActivity : Activity() {
         host.startListening()
         val mgr = AppWidgetManager.getInstance(this)
 
-        val root = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        fun section(colors: IntArray, labelColor: Int, topPad: Int) = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(Color.rgb(0x3B, 0x4A, 0x63), Color.rgb(0x1F, 0x27, 0x36), Color.rgb(0x14, 0x18, 0x22)),
-            )
-            setPadding(dp(16), dp(120), dp(16), dp(16))
+            background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors)
+            setPadding(dp(16), dp(topPad), dp(16), dp(18))
+            tag = labelColor
         }
 
-        fun label(text: String) = TextView(this).apply {
+        fun label(parent: LinearLayout, text: String) = parent.addView(TextView(this).apply {
             this.text = text
-            setTextColor(Color.argb(170, 255, 255, 255))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(28), 0, dp(10))
-        }
+            setTextColor(parent.tag as Int)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(12), 0, dp(8))
+        })
 
-        fun addWidget(cls: Class<*>, wDp: Int, hDp: Int) {
+        fun addWidget(parent: LinearLayout, cls: Class<*>, wDp: Int, hDp: Int) {
             val id = host.allocateAppWidgetId()
             val ok = mgr.bindAppWidgetIdIfAllowed(id, ComponentName(this, cls))
             if (!ok) {
-                root.addView(label("위젯 연결 권한이 없어요 (appwidget grantbind 필요)"))
+                label(parent, "위젯 연결 권한이 없어요 (appwidget grantbind 필요)")
                 return
             }
             val opts = Bundle().apply {
@@ -73,13 +73,24 @@ class WidgetPreviewActivity : Activity() {
             }
             mgr.updateAppWidgetOptions(id, opts)
             val view = host.createView(this, id, mgr.getAppWidgetInfo(id))
-            root.addView(view, LinearLayout.LayoutParams(dp(wDp), dp(hDp)))
+            parent.addView(view, LinearLayout.LayoutParams(dp(wDp), dp(hDp)))
         }
 
-        root.addView(label("2×2"))
-        addWidget(SmallGoldWidgetReceiver::class.java, 170, 170)
-        root.addView(label("4×1"))
-        addWidget(WideGoldWidgetReceiver::class.java, 350, 84)
+        val dark = section(
+            intArrayOf(Color.rgb(0x3B, 0x4A, 0x63), Color.rgb(0x1F, 0x27, 0x36)),
+            Color.argb(170, 255, 255, 255), 56,
+        )
+        val light = section(
+            intArrayOf(Color.rgb(0xF4, 0xEF, 0xE6), Color.rgb(0xCF, 0xDD, 0xE8)),
+            Color.argb(170, 0, 0, 0), 4,
+        )
+        for (sec in listOf(dark, light)) {
+            label(sec, "2×2")
+            addWidget(sec, SmallGoldWidgetReceiver::class.java, 170, 170)
+            label(sec, "4×1")
+            addWidget(sec, WideGoldWidgetReceiver::class.java, 350, 84)
+            root.addView(sec, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
         setContentView(root)
 
         CoroutineScope(Dispatchers.Main).launch {

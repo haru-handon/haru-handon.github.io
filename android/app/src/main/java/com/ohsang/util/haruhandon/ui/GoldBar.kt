@@ -224,6 +224,7 @@ fun renderGoldBarBitmap(
     landscape: Boolean,
     longSidePx: Int,
     pitchDeg: Float = -8f,
+    shadow: Boolean = false,
 ): android.graphics.Bitmap {
     val layout = if (landscape) BarLayout.Landscape else BarLayout.Portrait
     val s = longSidePx / max(layout.w, layout.h)
@@ -237,7 +238,22 @@ fun renderGoldBarBitmap(
     CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(bmp), Size(cw.toFloat(), ch.toFloat())) {
         drawSlab(front, front, tools, yawDeg = 0f, pitchDeg = pitchDeg, dim = don == 0, relativeDeg = 0f, tiltX = 0f, shine = -1f)
     }
-    return bmp.asAndroidBitmap()
+    val bar = bmp.asAndroidBitmap()
+    if (!shadow) return bar
+    // 배경 없는 위젯용: 골드바 모양을 따라 아래로 번지는 그림자를 그림에 넣는다
+    val blur = longSidePx * 0.035f
+    val dy = longSidePx * 0.035f
+    val pad = ceil(blur * 2f + dy).toInt()
+    val out = android.graphics.Bitmap.createBitmap(cw + pad * 2, ch + pad * 2, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(out)
+    val off = IntArray(2)
+    val mask = bar.extractAlpha(
+        android.graphics.Paint().apply { maskFilter = android.graphics.BlurMaskFilter(blur, android.graphics.BlurMaskFilter.Blur.NORMAL) },
+        off,
+    )
+    c.drawBitmap(mask, pad + off[0].toFloat(), pad + off[1] + dy, android.graphics.Paint().apply { color = android.graphics.Color.argb(150, 0, 0, 0) })
+    c.drawBitmap(bar, pad.toFloat(), pad.toFloat(), null)
+    return out
 }
 
 /* ---------- 3D 판 (원근 투영) ---------- */
