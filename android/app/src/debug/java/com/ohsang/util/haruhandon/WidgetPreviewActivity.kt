@@ -41,7 +41,7 @@ class WidgetPreviewActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors)
-            setPadding(dp(16), dp(topPad), dp(16), dp(18))
+            setPadding(dp(16), dp(topPad), dp(16), dp(10))
             tag = labelColor
         }
 
@@ -49,7 +49,7 @@ class WidgetPreviewActivity : Activity() {
             this.text = text
             setTextColor(parent.tag as Int)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, dp(12), 0, dp(8))
+            setPadding(0, dp(6), 0, dp(6))
         })
 
         fun addWidget(parent: LinearLayout, cls: Class<*>, wDp: Int, hDp: Int) {
@@ -78,8 +78,9 @@ class WidgetPreviewActivity : Activity() {
 
         val dark = section(
             intArrayOf(Color.rgb(0x3B, 0x4A, 0x63), Color.rgb(0x1F, 0x27, 0x36)),
-            Color.argb(170, 255, 255, 255), 56,
+            Color.argb(170, 255, 255, 255), 6,
         )
+        root.setBackgroundColor(Color.rgb(0xCF, 0xDD, 0xE8))
         val light = section(
             intArrayOf(Color.rgb(0xF4, 0xEF, 0xE6), Color.rgb(0xCF, 0xDD, 0xE8)),
             Color.argb(170, 0, 0, 0), 4,
@@ -89,7 +90,7 @@ class WidgetPreviewActivity : Activity() {
             addWidget(sec, SmallGoldWidgetReceiver::class.java, 170, 170)
             label(sec, "4×1")
             addWidget(sec, WideGoldWidgetReceiver::class.java, 350, 84)
-            root.addView(sec, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            root.addView(sec, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
         setContentView(root)
 

@@ -253,7 +253,26 @@ fun renderGoldBarBitmap(
     )
     c.drawBitmap(mask, pad + off[0].toFloat(), pad + off[1] + dy, android.graphics.Paint().apply { color = android.graphics.Color.argb(150, 0, 0, 0) })
     c.drawBitmap(bar, pad.toFloat(), pad.toFloat(), null)
-    return out
+    return trimTransparent(out)
+}
+
+/** 거의 투명한 가장자리를 잘라 내 위젯 칸을 골드바가 최대한 채우게 한다 */
+private fun trimTransparent(b: android.graphics.Bitmap): android.graphics.Bitmap {
+    val w = b.width
+    val h = b.height
+    val px = IntArray(w * h)
+    b.getPixels(px, 0, w, 0, 0, w, h)
+    var l = w; var t = h; var r = -1; var bt = -1
+    for (y in 0 until h) for (x in 0 until w) {
+        if ((px[y * w + x] ushr 24) > 10) {
+            if (x < l) l = x
+            if (x > r) r = x
+            if (y < t) t = y
+            if (y > bt) bt = y
+        }
+    }
+    if (r < l || bt < t) return b
+    return android.graphics.Bitmap.createBitmap(b, l, t, r - l + 1, bt - t + 1)
 }
 
 /* ---------- 3D 판 (원근 투영) ---------- */
