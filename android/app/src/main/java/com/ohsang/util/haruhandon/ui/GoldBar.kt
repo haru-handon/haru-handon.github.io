@@ -276,9 +276,9 @@ private const val THICK = 30f
 /** 카메라까지 거리. 작을수록 원근이 세다 */
 private const val CAM_DIST = 900f
 
-/** 가만히 있을 때 정면, 살짝 위에서 내려다보게 (윗면 두께가 보임) */
+/** 가만히 있을 때 정면 눈높이 (흔들릴 때 위아래 두께가 살짝 비침) */
 private const val REST_YAW = 0f
-private const val REST_PITCH = -12f
+private const val REST_PITCH = 0f
 
 /** 둥근 모서리 사각형 테두리 (판 중심 기준, 화면 좌표처럼 y는 아래로, 시계 방향) */
 private val OUTLINE: List<Offset> = run {
