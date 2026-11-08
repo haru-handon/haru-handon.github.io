@@ -107,7 +107,8 @@ class WideGoldWidget : GlanceAppWidget() {
 @Composable
 private fun WideContent(bar: android.graphics.Bitmap, don: Int, fortune: String) {
     val size = LocalSize.current
-    val padV = 4.dp
+    // 위젯 둥근 모서리에 골드바가 걸리지 않게 띄운다
+    val padV = 9.dp
     val barH = size.height - padV * 2
     val barW = barH * LANDSCAPE_RATIO
     Row(
@@ -115,7 +116,7 @@ private fun WideContent(bar: android.graphics.Bitmap, don: Int, fortune: String)
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg))
             .clickable(actionStartActivity<MainActivity>())
-            .padding(start = 6.dp, end = 14.dp, top = padV, bottom = padV),
+            .padding(start = 14.dp, end = 14.dp, top = padV, bottom = padV),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
@@ -124,7 +125,7 @@ private fun WideContent(bar: android.graphics.Bitmap, don: Int, fortune: String)
             contentScale = ContentScale.Fit,
             modifier = GlanceModifier.size(width = barW, height = barH),
         )
-        Spacer(GlanceModifier.width(10.dp))
+        Spacer(GlanceModifier.width(12.dp))
         Column {
             Text(
                 donLabel(don),
