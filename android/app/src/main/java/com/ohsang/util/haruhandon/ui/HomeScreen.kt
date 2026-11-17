@@ -93,6 +93,7 @@ fun HomeScreen(
     var counts by remember { mutableStateOf(store.fortuneCounts()) }
     var labels by remember { mutableStateOf(store.completedCategories()) }
     var freshLabel by remember { mutableStateOf<Category?>(null) }
+    val decorIn = remember { Animatable(1f) }
     var fortune by remember { mutableStateOf<Fortune?>(store.todayFortune()) }
     var fortuneIsNew by remember { mutableStateOf(false) }
     var dogamOpen by remember { mutableStateOf(false) }
@@ -200,9 +201,11 @@ fun HomeScreen(
                         delay(1700)
                         freshLabel = earned
                         labels = labelsAfter
+                        decorIn.snapTo(0f)
+                        launch { decorIn.animateTo(1f, tween(1400)) }
                         sfx.play(Sound.CHIME)
                         haptics.confirm()
-                        toast = ToastMsg("${earned.label} 문구를 다 모았어요! 금고에 라벨을 붙였어요")
+                        toast = ToastMsg("${earned.label} 문구 완성! 금고 장식 「${earned.decor}」 획득")
                     }
                     if (!store.notificationAsked) {
                         store.notificationAsked = true
@@ -290,7 +293,9 @@ fun HomeScreen(
                     showHint = phase == Phase.Closed,
                     onDoorTap = ::openVault,
                     modifier = Modifier.fillMaxSize(),
-                    labels = { VaultLabels(labels, freshLabel) },
+                    decor = labels,
+                    fresh = freshLabel,
+                    freshProgress = decorIn.value,
                 ) {
                     InteractiveGoldBar(
                         don = shownDon,
@@ -308,7 +313,7 @@ fun HomeScreen(
                 GoldToast(toast, Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
             }
 
-            FortuneCard(today, if (fortuneVisible) fortune else null, fortuneIsNew, fortune?.let { counts[it.id] } ?: 0)
+            FortuneCard(today, if (fortuneVisible) fortune else null, fortuneIsNew)
             Foot(
                 open = phase == Phase.Open,
                 onClose = ::closeVault,
@@ -439,7 +444,7 @@ private fun TierLine(don: Int) {
 }
 
 @Composable
-private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean, count: Int) {
+private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean) {
     val dow = today.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.KOREAN)
     Column(
         Modifier
@@ -473,8 +478,6 @@ private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean, cou
                             .background(Palette.Gold, RoundedCornerShape(8.dp))
                             .padding(horizontal = 6.dp),
                     )
-                } else if (count > 1) {
-                    Text("${count}번째", color = Palette.Muted, fontSize = 10.5.sp)
                 }
             }
             Spacer(Modifier.weight(1f))

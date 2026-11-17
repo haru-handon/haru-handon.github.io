@@ -3,13 +3,13 @@ package com.ohsang.util.haruhandon.data
 import java.time.LocalDate
 import kotlin.random.Random
 
-/** 문구 카테고리. 한 카테고리를 다 모으면 금고에 그 이름의 라벨이 붙는다. */
-enum class Category(val label: String) {
-    MONEY("재물"),
-    LUCK("행운"),
-    BOND("인연"),
-    STEADY("성실"),
-    EASE("여유"),
+/** 문구 카테고리. 한 카테고리를 다 모으면 금고에 그 카테고리의 장식이 생긴다. */
+enum class Category(val label: String, val decor: String, val decorHint: String) {
+    MONEY("재물", "엽전 장식", "금고 꼭대기에 금 엽전이 얹혀요"),
+    LUCK("행운", "福 다이얼", "다이얼 손잡이가 금빛 福으로 바뀌어요"),
+    BOND("인연", "매듭 노리개", "손잡이에 붉은 매듭 노리개가 달려요"),
+    STEADY("성실", "금 징 테두리", "문 테두리를 따라 금 징이 박혀요"),
+    EASE("여유", "구름 장석", "문 네 모서리에 구름 모양 금 장석이 붙어요"),
 }
 
 /** id는 저장 키라서 한 번 정하면 바꾸지 않는다 (새 문구는 뒤에 이어 붙인다). */

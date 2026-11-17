@@ -121,11 +121,14 @@ shot 13-dogam-open
 sleep 2.4
 shot 14-dogam-label
 sleep 2
+tap_text "금고 보관"
+sleep 3
+shot 18-dogam-after
 tap_text "문구 도감"
 sleep 1.5
 shot 15-dogam-book
-adb shell input swipe 540 1600 540 500 600
-sleep 1.2
+tap_text "인연"
+sleep 1
 shot 16-dogam-book2
 # 이미 모은 문구가 또 나온 날
 seed_dogam 52 "$DOGAM" 4
@@ -133,6 +136,11 @@ launch
 adb shell input tap $CX $CY
 sleep 6
 shot 17-dogam-dup
+# 다섯 카테고리를 다 모아 장식이 모두 달린 금고
+ALL=$(python3 -c "print(','.join(f'{i}=1' for i in range(60)))")
+seed_dogam 60 "$ALL" 0
+launch
+shot 19-dogam-full
 
 # 1~2: 12일 모은 상태에서 오늘 열기 → 1냥 3돈
 seed 12
