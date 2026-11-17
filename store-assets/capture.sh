@@ -54,6 +54,44 @@ seed() {
   adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/handon.xml shared_prefs/handon.xml'"
 }
 
+# 문구 도감: 출석 N일 + 모은 문구(id=횟수,...) + 다음에 뽑힐 문구
+seed_dogam() {
+  local n=$1 counts=$2 next=$3
+  {
+    echo "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>"
+    echo "<map>"
+    echo '    <boolean name="notify_asked" value="true" />'
+    echo '    <boolean name="sound_on" value="true" />'
+    echo "    <string name=\"fortune_counts\">$counts</string>"
+    echo "    <int name=\"debug_next_fortune\" value=\"$next\" />"
+    echo '    <set name="attended_days">'
+    for i in $(seq 1 "$n"); do
+      echo "        <string>$(date -d "$TODAY -$i day" +%F)</string>"
+    done
+    echo '    </set>'
+    echo "</map>"
+  } > /tmp/handon.xml
+  adb shell am force-stop "$PKG"
+  adb push /tmp/handon.xml /data/local/tmp/handon.xml >/dev/null
+  adb shell chmod 644 /data/local/tmp/handon.xml
+  adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/handon.xml shared_prefs/handon.xml'"
+}
+
+# 화면에서 글자를 찾아 그 가운데를 누른다
+tap_text() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  local xy
+  xy=$(adb shell cat /sdcard/ui.xml | python3 -c "
+import sys,re
+t=sys.stdin.read()
+for m in re.finditer(r'text=\"([^\"]*)\"[^>]*?bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]', t):
+    if sys.argv[1] in m.group(1):
+        a,b,c,d=map(int,m.groups()[1:]); print((a+c)//2,(b+d)//2); break
+" "$1")
+  echo "tap '$1' at $xy"
+  [ -n "$xy" ] && adb shell input tap $xy
+}
+
 launch() {
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am start -W -n "$PKG/.MainActivity" >/dev/null
@@ -71,6 +109,30 @@ CX=540
 CY=830
 
 set +e
+
+# 12~17: 문구 도감 — 재물 라벨은 이미 있고, 행운은 하나만 남은 상태에서 그 하나를 뽑는다
+DOGAM="0=2,3=1,4=3,9=1,21=2,24=1,27=1,30=2,38=1,39=1,49=1,53=2,2=1,10=2,12=1,15=1,17=1,20=1,22=2,34=1,40=1,41=1,48=1,5=1,7=1,14=2,25=1,28=1,1=1,6=1,8=1,13=1,23=2,29=1,11=1,16=1,18=2,19=1"
+seed_dogam 52 "$DOGAM" 55
+launch
+shot 12-dogam-closed
+adb shell input tap $CX $CY
+sleep 4.6
+shot 13-dogam-open
+sleep 2.4
+shot 14-dogam-label
+sleep 2
+tap_text "도감 "
+sleep 1.5
+shot 15-dogam-book
+adb shell input swipe 540 1600 540 500 600
+sleep 1.2
+shot 16-dogam-book2
+# 이미 모은 문구가 또 나온 날
+seed_dogam 52 "$DOGAM" 4
+launch
+adb shell input tap $CX $CY
+sleep 6
+shot 17-dogam-dup
 
 # 1~2: 12일 모은 상태에서 오늘 열기 → 1냥 3돈
 seed 12

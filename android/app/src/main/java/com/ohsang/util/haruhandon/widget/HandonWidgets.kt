@@ -34,7 +34,6 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.ohsang.util.haruhandon.MainActivity
 import com.ohsang.util.haruhandon.R
-import com.ohsang.util.haruhandon.data.Fortunes
 import com.ohsang.util.haruhandon.data.HandonStore
 import com.ohsang.util.haruhandon.ui.renderGoldBarBitmap
 
@@ -86,7 +85,7 @@ class WideGoldWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val store = HandonStore(context)
         val don = store.totalDon()
-        val fortune = Fortunes.forDate(store.today())
+        val fortune = store.todayFortune()?.text ?: "금고를 열면 오늘의 문구를 받아요."
         val bar = renderGoldBarBitmap(context, don, landscape = false, longSidePx = 560)
         val top = firstOpaqueRow(bar)
         provideContent { WideContent(bar, top, fortune) }

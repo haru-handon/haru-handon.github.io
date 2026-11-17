@@ -47,7 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohsang.util.haruhandon.data.Fortunes
+import com.ohsang.util.haruhandon.data.Category
+import com.ohsang.util.haruhandon.data.Fortune
 import com.ohsang.util.haruhandon.data.HandonStore
 import com.ohsang.util.haruhandon.data.donLabel
 import com.ohsang.util.haruhandon.data.gramLabel
@@ -89,6 +90,12 @@ fun HomeScreen(
     var celebration by remember { mutableStateOf<CelebrationInfo?>(null) }
     var toast by remember { mutableStateOf<ToastMsg?>(null) }
     var soundOn by remember { mutableStateOf(store.soundOn) }
+    var counts by remember { mutableStateOf(store.fortuneCounts()) }
+    var labels by remember { mutableStateOf(store.completedCategories()) }
+    var freshLabel by remember { mutableStateOf<Category?>(null) }
+    var fortune by remember { mutableStateOf<Fortune?>(store.todayFortune()) }
+    var fortuneIsNew by remember { mutableStateOf(false) }
+    var dogamOpen by remember { mutableStateOf(false) }
 
     val dial = remember { Animatable(0f) }
     val door = remember { Animatable(0f) }
@@ -105,6 +112,10 @@ fun HomeScreen(
         today = store.today()
         shownDon = store.totalDon()
         streak = store.streak()
+        counts = store.fortuneCounts()
+        labels = store.completedCategories()
+        fortune = store.todayFortune()
+        fortuneIsNew = false
     }
 
     fun refreshWidgets() {
@@ -151,6 +162,11 @@ fun HomeScreen(
             val isNew = store.attendToday()
             val after = store.totalDon()
             streak = store.streak()
+            counts = store.fortuneCounts()
+            fortune = store.todayFortune()
+            fortuneIsNew = isNew && fortune?.let { counts[it.id] == 1 } == true
+            val labelsAfter = store.completedCategories()
+            val earned = (labelsAfter - labels).firstOrNull()
             fortuneVisible = true
             phase = Phase.Open
 
@@ -174,8 +190,20 @@ fun HomeScreen(
                     sfx.play(Sound.FANFARE)
                     haptics.confirm()
                     celebration = CelebrationInfo(after, upgraded?.name)
+                    if (earned != null) {
+                        freshLabel = earned
+                        labels = labelsAfter
+                    }
                 } else {
                     toast = ToastMsg(upgraded?.let { "${it.name}로 업그레이드됐어요!" } ?: "금 1돈 입고! 총 ${donLabel(after)}")
+                    if (earned != null) {
+                        delay(1700)
+                        freshLabel = earned
+                        labels = labelsAfter
+                        sfx.play(Sound.CHIME)
+                        haptics.confirm()
+                        toast = ToastMsg("${earned.label} 문구를 다 모았어요! 금고에 라벨을 붙였어요")
+                    }
                     if (!store.notificationAsked) {
                         store.notificationAsked = true
                         delay(1600)
@@ -239,7 +267,7 @@ fun HomeScreen(
             .background(Brush.radialGradient(0f to Palette.InkLift, 0.7f to Palette.Ink, 1f to Palette.Ink))
     ) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-            Header(shownDon, streak, soundOn) {
+            Header(shownDon, streak, soundOn, counts.count { it.value > 0 }, { dogamOpen = true }) {
                 soundOn = !soundOn
                 store.soundOn = soundOn
                 sfx.enabled = soundOn
@@ -262,6 +290,7 @@ fun HomeScreen(
                     showHint = phase == Phase.Closed,
                     onDoorTap = ::openVault,
                     modifier = Modifier.fillMaxSize(),
+                    labels = { VaultLabels(labels, freshLabel) },
                 ) {
                     InteractiveGoldBar(
                         don = shownDon,
@@ -279,10 +308,12 @@ fun HomeScreen(
                 GoldToast(toast, Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
             }
 
-            FortuneCard(today, fortuneVisible)
+            FortuneCard(today, if (fortuneVisible) fortune else null, fortuneIsNew, fortune?.let { counts[it.id] } ?: 0)
             Foot(open = phase == Phase.Open, onClose = ::closeVault)
 
         }
+
+        CollectionScreen(dogamOpen, counts, labels, onClose = { dogamOpen = false })
 
         celebration?.let { info ->
             NyangCelebration(
@@ -303,7 +334,14 @@ fun HomeScreen(
 /* ---------- 화면 조각 ---------- */
 
 @Composable
-private fun Header(don: Int, streak: Int, soundOn: Boolean, onToggleSound: () -> Unit) {
+private fun Header(
+    don: Int,
+    streak: Int,
+    soundOn: Boolean,
+    collected: Int,
+    onOpenDogam: () -> Unit,
+    onToggleSound: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -330,6 +368,17 @@ private fun Header(don: Int, streak: Int, soundOn: Boolean, onToggleSound: () ->
                     modifier = Modifier
                         .clickable(onClick = onToggleSound)
                         .padding(vertical = 4.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "도감 $collected/${com.ohsang.util.haruhandon.data.Fortunes.ALL.size}",
+                    color = Palette.GoldHi,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .border(1.dp, Palette.GoldLo, RoundedCornerShape(10.dp))
+                        .clickable(onClick = onOpenDogam)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
         }
@@ -385,7 +434,7 @@ private fun TierLine(don: Int) {
 }
 
 @Composable
-private fun FortuneCard(today: LocalDate, visible: Boolean) {
+private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean, count: Int) {
     val dow = today.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.KOREAN)
     Column(
         Modifier
@@ -396,14 +445,40 @@ private fun FortuneCard(today: LocalDate, visible: Boolean) {
             .padding(horizontal = 16.dp, vertical = 14.dp)
             .heightIn(min = 68.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("오늘의 재물운", color = Palette.Gold, fontSize = 11.sp, letterSpacing = 0.9.sp, fontWeight = FontWeight.SemiBold)
+            if (fortune != null) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    fortune.category.label,
+                    color = Palette.GoldHi,
+                    fontSize = 10.5.sp,
+                    modifier = Modifier
+                        .border(1.dp, Palette.GoldLo, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                if (isNew) {
+                    Text(
+                        "NEW",
+                        color = Color(0xFF2A1C04),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier
+                            .background(Palette.Gold, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp),
+                    )
+                } else if (count > 1) {
+                    Text("${count}번째", color = Palette.Muted, fontSize = 10.5.sp)
+                }
+            }
+            Spacer(Modifier.weight(1f))
             Text("${today.monthValue}.${today.dayOfMonth} $dow", color = Palette.Faint, fontSize = 11.sp)
         }
         Spacer(Modifier.height(6.dp))
-        if (visible) {
+        if (fortune != null) {
             Text(
-                Fortunes.forDate(today),
+                fortune.text,
                 color = Palette.Text,
                 fontSize = 15.5.sp,
                 lineHeight = 23.sp,
@@ -411,7 +486,7 @@ private fun FortuneCard(today: LocalDate, visible: Boolean) {
                 fontWeight = FontWeight.Bold,
             )
         } else {
-            Text("금고를 열면 오늘의 덕담이 나와요.", color = Palette.Faint, fontSize = 13.sp)
+            Text("금고를 열면 오늘의 문구가 나와요.", color = Palette.Faint, fontSize = 13.sp)
         }
     }
 }

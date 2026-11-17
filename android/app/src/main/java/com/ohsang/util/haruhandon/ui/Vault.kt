@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -60,6 +61,7 @@ fun VaultStage(
     showHint: Boolean,
     onDoorTap: () -> Unit,
     modifier: Modifier = Modifier,
+    labels: @Composable () -> Unit = {},
     bar: @Composable () -> Unit,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
@@ -111,6 +113,9 @@ fun VaultStage(
             }
 
             Canvas(Modifier.fillMaxSize().zIndex(3f)) { drawHinges() }
+
+            // 금고 아랫단에 붙는 라벨 줄 (문이 열려도 몸체에 붙어 있다)
+            Box(Modifier.align(Alignment.BottomCenter).offset(y = 10.dp).zIndex(3.5f)) { labels() }
         }
     }
 }
