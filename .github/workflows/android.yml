@@ -75,6 +75,11 @@ jobs:
           ALIAS="${ANDROID_KEY_ALIAS:-upload}"
           {
             echo "### 업로드 키로 서명해요 (버전 코드 ${VERSION_CODE})"
+            if [ -n "$ADMOB_ANDROID_APP_ID" ] && [ -n "$ADMOB_ANDROID_REWARDED_ID" ]; then
+              echo "AdMob: 실제 광고 ID로 빌드했어요"
+            else
+              echo "⚠️ AdMob: Secrets(ADMOB_ANDROID_APP_ID, ADMOB_ANDROID_REWARDED_ID)가 없어 테스트 광고로 빌드했어요"
+            fi
             echo '```'
             keytool -list -v -keystore "$ANDROID_KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ALIAS" | grep -E "SHA1:|SHA256:"
             echo '```'
