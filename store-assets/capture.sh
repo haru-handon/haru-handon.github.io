@@ -118,9 +118,9 @@ shot 12-dogam-closed
 adb shell input tap $CX $CY
 sleep 4.0
 shot 13-dogam-open
-sleep 2.4
+sleep 1.3
 shot 14-dogam-label
-sleep 2
+sleep 3
 tap_text "금고 보관"
 sleep 3
 shot 18-dogam-after

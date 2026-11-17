@@ -297,7 +297,7 @@ private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float
         )
     }
     // 인연 장식: 손잡이에 매단 매듭 노리개
-    if (look.has(Category.BOND)) drawTassel(Offset(cx + lw * 0.32f, ly + lh * 0.6f), look.alpha(Category.BOND))
+    if (look.has(Category.BOND)) drawTassel(Offset(cx + lw * 0.36f, ly + lh * 0.5f), look.alpha(Category.BOND))
 }
 
 /* ---------- 문구 도감 장식 (카테고리를 다 모으면 생긴다) ---------- */
@@ -347,7 +347,7 @@ private fun DrawScope.drawLuckKnob(c: Offset, knob: Float, alpha: Float, measure
 
 /** 인연: 붉은 매듭과 술 */
 private fun DrawScope.drawTassel(top: Offset, alpha: Float) {
-    val u = size.width * 0.011f
+    val u = size.width * 0.016f
     val red = Color(0xFFB0262C)
     drawLine(red, top, top + Offset(0f, u * 1.6f), u * 0.5f, alpha = alpha)
     // 매듭 (마름모)
