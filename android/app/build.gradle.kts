@@ -18,13 +18,9 @@ android {
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = "1.0.0"
 
-        // AdMob: 실제 ID는 GitHub Secrets(ADMOB_APP_ID, ADMOB_REWARDED_ID)로 넣는다. 없으면 Google 테스트 ID.
-        val admobApp = System.getenv("ADMOB_APP_ID")?.takeIf { it.isNotBlank() }
-            ?: "ca-app-pub-3940256099942544~3347511713"
-        val admobRewarded = System.getenv("ADMOB_REWARDED_ID")?.takeIf { it.isNotBlank() }
-            ?: "ca-app-pub-3940256099942544/5224354917"
-        manifestPlaceholders["admobAppId"] = admobApp
-        buildConfigField("String", "ADMOB_REWARDED_ID", "\"$admobRewarded\"")
+        // AdMob: 디버그는 항상 Google 테스트 ID (내 광고를 직접 누르면 계정이 정지될 수 있어요)
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "ADMOB_REWARDED_ID", "\"ca-app-pub-3940256099942544/5224354917\"")
     }
 
     // 업로드 키는 GitHub Secrets → 워크플로가 환경 변수로 넘겨준다
@@ -44,6 +40,11 @@ android {
     buildTypes {
         release {
             if (keystorePath != null) signingConfig = signingConfigs.getByName("upload")
+            // 스토어 빌드에만 실제 AdMob ID (GitHub Secrets: ADMOB_APP_ID, ADMOB_REWARDED_ID)
+            System.getenv("ADMOB_APP_ID")?.takeIf { it.isNotBlank() }?.let { manifestPlaceholders["admobAppId"] = it }
+            System.getenv("ADMOB_REWARDED_ID")?.takeIf { it.isNotBlank() }?.let {
+                buildConfigField("String", "ADMOB_REWARDED_ID", "\"$it\"")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
