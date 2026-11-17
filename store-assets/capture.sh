@@ -116,7 +116,7 @@ seed_dogam 52 "$DOGAM" 55
 launch
 shot 12-dogam-closed
 adb shell input tap $CX $CY
-sleep 4.6
+sleep 4.0
 shot 13-dogam-open
 sleep 2.4
 shot 14-dogam-label

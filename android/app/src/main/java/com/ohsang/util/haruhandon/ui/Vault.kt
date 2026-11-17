@@ -115,7 +115,7 @@ fun VaultStage(
             Canvas(Modifier.fillMaxSize().zIndex(3f)) { drawHinges() }
 
             // 금고 아랫단에 붙는 라벨 줄 (문이 열려도 몸체에 붙어 있다)
-            Box(Modifier.align(Alignment.BottomCenter).offset(y = 10.dp).zIndex(3.5f)) { labels() }
+            Box(Modifier.align(Alignment.BottomCenter).offset(y = 22.dp).zIndex(5f)) { labels() }
         }
     }
 }

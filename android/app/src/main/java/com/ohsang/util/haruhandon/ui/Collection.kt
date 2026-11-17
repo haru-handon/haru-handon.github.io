@@ -76,7 +76,7 @@ private fun LabelPlate(text: String, isFresh: Boolean) {
                 scaleY = s
                 alpha = pop.value.coerceIn(0f, 1f)
             }
-            .size(width = 44.dp, height = 20.dp)
+            .size(width = 44.dp, height = 18.dp)
             .background(BrassPlate, RoundedCornerShape(4.dp))
             .border(1.dp, Color(0xFF6E4E12), RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center,
@@ -95,7 +95,7 @@ private fun LabelPlate(text: String, isFresh: Boolean) {
 private fun EmptySlot() {
     Box(
         Modifier
-            .size(width = 44.dp, height = 20.dp)
+            .size(width = 44.dp, height = 18.dp)
             .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
             .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(4.dp))
     )
