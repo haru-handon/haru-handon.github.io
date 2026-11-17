@@ -79,17 +79,22 @@ seed_dogam() {
   adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/handon.xml shared_prefs/handon.xml'"
 }
 
-# 화면에서 글자를 찾아 그 가운데를 누른다
+# 화면에서 글자를 찾아 그 가운데를 누른다 (화면 정보가 비면 세 번까지 다시, 그래도 없으면 $2 $3 좌표)
 tap_text() {
-  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
-  local xy
-  xy=$(adb shell cat /sdcard/ui.xml | python3 -c "
+  local xy="" try
+  for try in 1 2 3; do
+    adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+    xy=$(adb shell cat /sdcard/ui.xml | python3 -c "
 import sys,re
 t=sys.stdin.read()
 for m in re.finditer(r'text=\"([^\"]*)\"[^>]*?bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]', t):
     if sys.argv[1] in m.group(1):
         a,b,c,d=map(int,m.groups()[1:]); print((a+c)//2,(b+d)//2); break
 " "$1")
+    [ -n "$xy" ] && break
+    sleep 1
+  done
+  [ -z "$xy" ] && [ -n "$2" ] && xy="$2 $3"
   echo "tap '$1' at $xy"
   [ -n "$xy" ] && adb shell input tap $xy
 }
@@ -124,7 +129,7 @@ sleep 1.3
 shot 14-dogam-label
 sleep 3
 shot 20-bonus-btn
-tap_text "광고 보고 문구"
+tap_text "광고 보고 문구" 790 1426
 sleep 1.5
 shot 21-bonus-ad
 sleep 4.5
