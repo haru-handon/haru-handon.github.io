@@ -102,6 +102,98 @@ private fun LabelPlate(text: String, isFresh: Boolean) {
 }
 
 
+/**
+ * 문구 도감. 왼쪽 카테고리 목록은 고정, 오른쪽 문구 목록만 스크롤된다.
+ * 못 모은 문구는 ??? 로만 보인다.
+ */
+@Composable
+fun CollectionScreen(visible: Boolean, counts: Map<Int, Int>, done: Set<Category>, onClose: () -> Unit) {
+    if (visible) BackHandler(onBack = onClose)
+    var selected by remember { mutableStateOf(Category.MONEY) }
+    AnimatedVisibility(
+        visible,
+        enter = slideInVertically { it / 6 } + fadeIn(),
+        exit = slideOutVertically { it / 6 } + fadeOut(),
+    ) {
+        val have = counts.keys.count { Fortunes.of(it) != null }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(Palette.Ink)
+                .clickable(remember { MutableInteractionSource() }, indication = null) {}
+                .safeDrawingPadding()
+        ) {
+            // 제목줄
+            Row(
+                Modifier.fillMaxWidth().padding(start = 22.dp, end = 10.dp, top = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("문구 도감", color = Palette.GoldHi, fontSize = 21.sp, fontFamily = SerifFamily, fontWeight = FontWeight.ExtraBold)
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text("$have", color = Palette.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(" / ${Fortunes.ALL.size} 모음", color = Palette.Muted, fontSize = 12.sp)
+                    }
+                    if (done.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        VaultLabels(done, fresh = null, vertical = false)
+                    }
+                }
+                Text(
+                    "닫기",
+                    color = Palette.Text,
+                    fontSize = 14.sp,
+                    modifier = Modifier.clickable(onClick = onClose).padding(12.dp),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
+
+            Row(Modifier.fillMaxSize()) {
+                // 왼쪽: 카테고리 (고정)
+                Column(
+                    Modifier
+                        .width(96.dp)
+                        .fillMaxHeight()
+                        .background(Color.Black.copy(alpha = 0.25f))
+                        .padding(vertical = 8.dp)
+                ) {
+                    Category.entries.forEach { c ->
+                        val list = Fortunes.inCategory(c)
+                        NavItem(
+                            c = c,
+                            got = list.count { it.id in counts },
+                            size = list.size,
+                            complete = c in done,
+                            selected = c == selected,
+                            onClick = { selected = c },
+                        )
+                    }
+                }
+                Box(Modifier.width(1.dp).fillMaxHeight().background(Palette.Line))
+
+                // 오른쪽: 고른 카테고리의 문구만 스크롤
+                val list = Fortunes.inCategory(selected)
+                val state = rememberLazyListState()
+                LaunchedEffect(selected) { state.scrollToItem(0) }
+                LazyColumn(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    state = state,
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                ) {
+                    item(key = "head-${selected.name}") {
+                        CategoryHead(selected, list.count { it.id in counts }, list.size, selected in done)
+                    }
+                    itemsIndexed(list, key = { _, f -> f.id }) { i, f ->
+                        EntryRow(i + 1, if (f.id in counts) f.text else null)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun NavItem(c: Category, got: Int, size: Int, complete: Boolean, selected: Boolean, onClick: () -> Unit) {
     Row(
