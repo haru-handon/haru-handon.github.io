@@ -84,4 +84,6 @@ dependencies {
 
     // 보상형 광고 (문구 하나 더 받기)
     implementation("com.google.android.gms:play-services-ads:24.4.0")
+    // 광고 SDK가 끌어오는 옛 Fragment 대신 최신 (registerForActivityResult 린트 오류 방지)
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
 }
