@@ -89,6 +89,9 @@ fun HomeScreen(
     var celebration by remember { mutableStateOf<CelebrationInfo?>(null) }
     var toast by remember { mutableStateOf<ToastMsg?>(null) }
     var soundOn by remember { mutableStateOf(store.soundOn) }
+    var missed by remember { mutableIntStateOf(store.missedStreak()) }
+    var sheetOpen by remember { mutableStateOf(false) }
+    var adPlaying by remember { mutableStateOf(false) }
 
     val dial = remember { Animatable(0f) }
     val door = remember { Animatable(0f) }
@@ -105,6 +108,7 @@ fun HomeScreen(
         today = store.today()
         shownDon = store.totalDon()
         streak = store.streak()
+        missed = store.missedStreak()
     }
 
     fun refreshWidgets() {
@@ -188,6 +192,26 @@ fun HomeScreen(
                 toast = ToastMsg("오늘의 금 1돈은 이미 받았어요. 내일 또 만나요.")
             }
         }
+    }
+
+    /** 광고를 끝까지 본 뒤: 어제를 채우고 금·연속 출석을 갱신 */
+    fun rewardFill() {
+        adPlaying = false
+        val before = store.totalDon()
+        if (!store.fillYesterday()) return
+        val after = store.totalDon()
+        streak = store.streak()
+        missed = 0
+        sfx.play(Sound.CHIME)
+        haptics.confirm()
+        scope.launch {
+            val count = Animatable(before.toFloat())
+            count.animateTo(after.toFloat(), tween(700)) { shownDon = value.roundToInt() }
+            shownDon = after
+        }
+        burstAt(Offset(stageRect.width / 2, stageRect.height * 0.15f), 10)
+        toast = ToastMsg("어제의 1돈을 채웠어요 · 연속 ${streak}일")
+        refreshWidgets()
     }
 
     fun closeVault() {
@@ -280,9 +304,25 @@ fun HomeScreen(
             }
 
             FortuneCard(today, fortuneVisible)
-            Foot(open = phase == Phase.Open, onClose = ::closeVault)
+            Foot(
+                open = phase == Phase.Open,
+                onClose = ::closeVault,
+                missed = if (phase == Phase.Closed) missed else 0,
+                onFill = { sheetOpen = true },
+            )
 
         }
+
+        FillSheet(
+            visible = sheetOpen,
+            missedStreak = missed,
+            onWatch = {
+                sheetOpen = false
+                adPlaying = true
+            },
+            onDismiss = { sheetOpen = false },
+        )
+        AdStandIn(adPlaying, onRewarded = ::rewardFill)
 
         celebration?.let { info ->
             NyangCelebration(
@@ -417,7 +457,7 @@ private fun FortuneCard(today: LocalDate, visible: Boolean) {
 }
 
 @Composable
-private fun Foot(open: Boolean, onClose: () -> Unit) {
+private fun Foot(open: Boolean, onClose: () -> Unit, missed: Int, onFill: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -439,6 +479,8 @@ private fun Foot(open: Boolean, onClose: () -> Unit) {
                     Text("금고 보관", color = Palette.Text, fontSize = 13.sp)
                 }
             }
+        } else if (missed > 0) {
+            MissedDayCard(missed, onFill)
         } else {
             Text(
                 "하루 한 번 금고를 열면 금 1돈이 더해져요",

@@ -50,6 +50,30 @@ class HandonStore(context: Context) {
         return n
     }
 
+    /**
+     * 놓친 날 채우기: 어제만 못 열었고 그 전날까지는 이어져 있을 때.
+     * 채울 수 있으면 그 전까지의 연속 일수, 아니면 0.
+     */
+    fun missedStreak(): Int {
+        val set = days()
+        val yesterday = today().minusDays(1)
+        if (yesterday.toString() in set) return 0
+        var d = yesterday.minusDays(1)
+        var n = 0
+        while (d.toString() in set) {
+            n++
+            d = d.minusDays(1)
+        }
+        return n
+    }
+
+    /** 어제를 연 날로 기록한다 (보상형 광고를 끝까지 본 뒤에만 부른다) */
+    fun fillYesterday(): Boolean {
+        if (missedStreak() == 0) return false
+        val key = today().minusDays(1).toString()
+        prefs.edit { putStringSet(KEY_DAYS, days() + key) }
+        return true
+    }
 
     companion object {
         const val FILE = "handon"

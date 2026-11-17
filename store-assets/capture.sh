@@ -54,6 +54,42 @@ seed() {
   adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/handon.xml shared_prefs/handon.xml'"
 }
 
+# 어제만 빼고 그 전 N일 연속 출석한 상태 (놓친 날 채우기)
+seed_gap() {
+  local n=$1
+  {
+    echo "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>"
+    echo "<map>"
+    echo '    <boolean name="notify_asked" value="true" />'
+    echo '    <boolean name="sound_on" value="true" />'
+    echo '    <set name="attended_days">'
+    for i in $(seq 2 "$((n + 1))"); do
+      echo "        <string>$(date -d "$TODAY -$i day" +%F)</string>"
+    done
+    echo '    </set>'
+    echo "</map>"
+  } > /tmp/handon.xml
+  adb shell am force-stop "$PKG"
+  adb push /tmp/handon.xml /data/local/tmp/handon.xml >/dev/null
+  adb shell chmod 644 /data/local/tmp/handon.xml
+  adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/handon.xml shared_prefs/handon.xml'"
+}
+
+# 화면에서 글자를 찾아 그 가운데를 누른다
+tap_text() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  local xy
+  xy=$(adb shell cat /sdcard/ui.xml | python3 -c "
+import sys,re
+t=sys.stdin.read()
+for m in re.finditer(r'text=\"([^\"]*)\"[^>]*?bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]', t):
+    if sys.argv[1] in m.group(1):
+        a,b,c,d=map(int,m.groups()[1:]); print((a+c)//2,(b+d)//2); break
+" "$1")
+  echo "tap '$1' at $xy"
+  [ -n "$xy" ] && adb shell input tap $xy
+}
+
 launch() {
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am start -W -n "$PKG/.MainActivity" >/dev/null
@@ -71,6 +107,19 @@ CX=540
 CY=830
 
 set +e
+
+# 8~11: 놓친 날 채우기 (보상형 광고 미리보기)
+seed_gap 12
+launch
+shot 08-missed
+tap_text "어제 1돈 채우기"
+sleep 1.5
+shot 09-sheet
+tap_text "광고 보고 채우기"
+sleep 2
+shot 10-ad
+sleep 4.2
+shot 11-filled
 
 # 1~2: 12일 모은 상태에서 오늘 열기 → 1냥 3돈
 seed 12
