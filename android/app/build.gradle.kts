@@ -40,9 +40,9 @@ android {
     buildTypes {
         release {
             if (keystorePath != null) signingConfig = signingConfigs.getByName("upload")
-            // 스토어 빌드에만 실제 AdMob ID (GitHub Secrets: ADMOB_APP_ID, ADMOB_REWARDED_ID)
-            System.getenv("ADMOB_APP_ID")?.takeIf { it.isNotBlank() }?.let { manifestPlaceholders["admobAppId"] = it }
-            System.getenv("ADMOB_REWARDED_ID")?.takeIf { it.isNotBlank() }?.let {
+            // 스토어 빌드에만 실제 AdMob ID (GitHub Secrets: ADMOB_ANDROID_APP_ID, ADMOB_ANDROID_REWARDED_ID)
+            System.getenv("ADMOB_ANDROID_APP_ID")?.takeIf { it.isNotBlank() }?.let { manifestPlaceholders["admobAppId"] = it }
+            System.getenv("ADMOB_ANDROID_REWARDED_ID")?.takeIf { it.isNotBlank() }?.let {
                 buildConfigField("String", "ADMOB_REWARDED_ID", "\"$it\"")
             }
             isMinifyEnabled = true
