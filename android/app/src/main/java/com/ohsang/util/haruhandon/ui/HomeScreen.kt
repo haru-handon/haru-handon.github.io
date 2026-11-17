@@ -640,7 +640,7 @@ private fun Foot(open: Boolean, onClose: () -> Unit, collected: Int, onOpenDogam
                             .clickable(onClick = onClose)
                             .padding(horizontal = 24.dp, vertical = 10.dp)
                     ) {
-                        Text("금고 보관", color = Palette.Text, fontSize = 13.sp)
+                        Text("금괴 넣기", color = Palette.Text, fontSize = 13.sp)
                     }
                 }
             }

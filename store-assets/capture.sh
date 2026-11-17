@@ -135,7 +135,7 @@ shot 21-bonus-ad
 sleep 4.5
 shot 22-bonus-got
 sleep 3
-tap_text "금고 보관"
+tap_text "금괴 넣기"
 sleep 3
 shot 18-dogam-after
 tap_text "문구 도감"
