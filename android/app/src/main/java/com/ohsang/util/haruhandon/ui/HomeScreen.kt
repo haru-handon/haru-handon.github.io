@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohsang.util.haruhandon.ads.RewardedAds
 import com.ohsang.util.haruhandon.data.Category
 import com.ohsang.util.haruhandon.data.Fortune
 import com.ohsang.util.haruhandon.data.HandonStore
@@ -93,10 +94,12 @@ fun HomeScreen(
     var counts by remember { mutableStateOf(store.fortuneCounts()) }
     var labels by remember { mutableStateOf(store.completedCategories()) }
     var freshLabel by remember { mutableStateOf<Category?>(null) }
-    val decorIn = remember { Animatable(1f) }
     var fortune by remember { mutableStateOf<Fortune?>(store.todayFortune()) }
     var fortuneIsNew by remember { mutableStateOf(false) }
     var dogamOpen by remember { mutableStateOf(false) }
+    var bonus by remember { mutableStateOf<Fortune?>(store.bonusFortune()) }
+    var bonusIsNew by remember { mutableStateOf(false) }
+    var fakeAd by remember { mutableStateOf(false) }
 
     val dial = remember { Animatable(0f) }
     val door = remember { Animatable(0f) }
@@ -117,6 +120,8 @@ fun HomeScreen(
         labels = store.completedCategories()
         fortune = store.todayFortune()
         fortuneIsNew = false
+        bonus = store.bonusFortune()
+        bonusIsNew = false
     }
 
     fun refreshWidgets() {
@@ -201,11 +206,9 @@ fun HomeScreen(
                         delay(1700)
                         freshLabel = earned
                         labels = labelsAfter
-                        decorIn.snapTo(0f)
-                        launch { decorIn.animateTo(1f, tween(1400)) }
                         sfx.play(Sound.CHIME)
                         haptics.confirm()
-                        toast = ToastMsg("${earned.label} 문구 완성! 금고 장식 「${earned.decor}」 획득")
+                        toast = ToastMsg("${earned.label} 문구를 다 모았어요! 금고에 라벨을 붙였어요")
                     }
                     if (!store.notificationAsked) {
                         store.notificationAsked = true
@@ -219,6 +222,40 @@ fun HomeScreen(
                 toast = ToastMsg("오늘의 금 1돈은 이미 받았어요. 내일 또 만나요.")
             }
         }
+    }
+
+    /** 광고를 끝까지 본 뒤: 문구 하나 더 (금은 그대로) */
+    fun grantBonus() {
+        fakeAd = false
+        val f = store.takeBonus() ?: return
+        counts = store.fortuneCounts()
+        bonus = f
+        bonusIsNew = counts[f.id] == 1
+        sfx.play(Sound.CHIME)
+        haptics.confirm()
+        val labelsAfter = store.completedCategories()
+        val earned = (labelsAfter - labels).firstOrNull()
+        if (earned != null) {
+            freshLabel = earned
+            labels = labelsAfter
+            toast = ToastMsg("${earned.label} 문구를 다 모았어요! 금고에 라벨을 붙였어요")
+        } else {
+            toast = ToastMsg(if (bonusIsNew) "새 문구를 도감에 담았어요" else "문구를 하나 더 받았어요")
+        }
+        refreshWidgets()
+    }
+
+    fun askBonus() {
+        if (store.debugFakeAd()) {
+            fakeAd = true
+            return
+        }
+        val activity = context.findActivity() ?: return
+        RewardedAds.show(
+            activity,
+            onReward = ::grantBonus,
+            onUnavailable = { toast = ToastMsg("광고를 불러오지 못했어요. 잠시 후 다시 눌러 주세요") },
+        )
     }
 
     fun closeVault() {
@@ -293,9 +330,7 @@ fun HomeScreen(
                     showHint = phase == Phase.Closed,
                     onDoorTap = ::openVault,
                     modifier = Modifier.fillMaxSize(),
-                    decor = labels,
-                    fresh = freshLabel,
-                    freshProgress = decorIn.value,
+                    labels = { VaultLabels(labels, freshLabel) },
                 ) {
                     InteractiveGoldBar(
                         don = shownDon,
@@ -313,7 +348,15 @@ fun HomeScreen(
                 GoldToast(toast, Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
             }
 
-            FortuneCard(today, if (fortuneVisible) fortune else null, fortuneIsNew)
+            FortuneCard(
+                today = today,
+                fortune = if (fortuneVisible) fortune else null,
+                isNew = fortuneIsNew,
+                bonus = if (fortuneVisible) bonus else null,
+                bonusIsNew = bonusIsNew,
+                canBonus = fortuneVisible && fortune != null && bonus == null,
+                onBonus = ::askBonus,
+            )
             Foot(
                 open = phase == Phase.Open,
                 onClose = ::closeVault,
@@ -324,6 +367,7 @@ fun HomeScreen(
         }
 
         CollectionScreen(dogamOpen, counts, labels, onClose = { dogamOpen = false })
+        AdStandIn(fakeAd, onRewarded = ::grantBonus)
 
         celebration?.let { info ->
             NyangCelebration(
@@ -444,7 +488,15 @@ private fun TierLine(don: Int) {
 }
 
 @Composable
-private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean) {
+private fun FortuneCard(
+    today: LocalDate,
+    fortune: Fortune?,
+    isNew: Boolean,
+    bonus: Fortune?,
+    bonusIsNew: Boolean,
+    canBonus: Boolean,
+    onBonus: () -> Unit,
+) {
     val dow = today.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.KOREAN)
     Column(
         Modifier
@@ -493,10 +545,72 @@ private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean) {
                 fontFamily = SerifFamily,
                 fontWeight = FontWeight.Bold,
             )
+            if (bonus != null) {
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
+                Spacer(Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("하나 더", color = Palette.Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(8.dp))
+                    CategoryChip(bonus.category.label)
+                    if (bonusIsNew) {
+                        Spacer(Modifier.width(6.dp))
+                        NewBadge()
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    bonus.text,
+                    color = Palette.Text,
+                    fontSize = 15.5.sp,
+                    lineHeight = 23.sp,
+                    fontFamily = SerifFamily,
+                    fontWeight = FontWeight.Bold,
+                )
+            } else if (canBonus) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier
+                        .align(Alignment.End)
+                        .border(1.dp, Palette.GoldLo, RoundedCornerShape(16.dp))
+                        .clickable(onClick = onBonus)
+                        .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("▶", color = Palette.Gold, fontSize = 9.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("광고 보고 문구 하나 더 받기", color = Palette.GoldHi, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
         } else {
             Text("금고를 열면 오늘의 문구가 나와요.", color = Palette.Faint, fontSize = 13.sp)
         }
     }
+}
+
+@Composable
+private fun CategoryChip(label: String) {
+    Text(
+        label,
+        color = Palette.GoldHi,
+        fontSize = 10.5.sp,
+        modifier = Modifier
+            .border(1.dp, Palette.GoldLo, RoundedCornerShape(8.dp))
+            .padding(horizontal = 6.dp),
+    )
+}
+
+@Composable
+private fun NewBadge() {
+    Text(
+        "NEW",
+        color = Color(0xFF2A1C04),
+        fontSize = 9.5.sp,
+        fontWeight = FontWeight.ExtraBold,
+        modifier = Modifier
+            .background(Palette.Gold, RoundedCornerShape(8.dp))
+            .padding(horizontal = 6.dp),
+    )
 }
 
 @Composable

@@ -17,6 +17,14 @@ android {
         // GitHub Actions에서는 실행 번호가 버전 코드가 된다
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = "1.0.0"
+
+        // AdMob: 실제 ID는 GitHub Secrets(ADMOB_APP_ID, ADMOB_REWARDED_ID)로 넣는다. 없으면 Google 테스트 ID.
+        val admobApp = System.getenv("ADMOB_APP_ID")?.takeIf { it.isNotBlank() }
+            ?: "ca-app-pub-3940256099942544~3347511713"
+        val admobRewarded = System.getenv("ADMOB_REWARDED_ID")?.takeIf { it.isNotBlank() }
+            ?: "ca-app-pub-3940256099942544/5224354917"
+        manifestPlaceholders["admobAppId"] = admobApp
+        buildConfigField("String", "ADMOB_REWARDED_ID", "\"$admobRewarded\"")
     }
 
     // 업로드 키는 GitHub Secrets → 워크플로가 환경 변수로 넘겨준다
@@ -72,4 +80,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.glance.appwidget)
+
+    // 보상형 광고 (문구 하나 더 받기)
+    implementation("com.google.android.gms:play-services-ads:24.4.0")
 }

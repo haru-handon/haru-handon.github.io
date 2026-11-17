@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,12 +36,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import com.ohsang.util.haruhandon.data.Category
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -65,20 +61,16 @@ fun VaultStage(
     showHint: Boolean,
     onDoorTap: () -> Unit,
     modifier: Modifier = Modifier,
-    decor: Set<Category> = emptySet(),
-    fresh: Category? = null,
-    freshProgress: Float = 1f,
+    labels: @Composable () -> Unit = {},
     bar: @Composable () -> Unit,
 ) {
-    val measurer = rememberTextMeasurer()
-    val look = Decor(decor, fresh, freshProgress)
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val w = min(maxWidth * 0.84f, maxHeight * 0.82f / 1.08f)
         val h = w * 1.08f
         val open = (doorAngle / DOOR_OPEN_DEG).coerceIn(0f, 1f)
 
         Box(Modifier.size(w, h)) {
-            Canvas(Modifier.fillMaxSize()) { drawSafeBody(tier, open, look) }
+            Canvas(Modifier.fillMaxSize()) { drawSafeBody(tier, open) }
 
             Box(
                 Modifier
@@ -112,7 +104,7 @@ fun VaultStage(
             ) {
                 Canvas(Modifier.fillMaxSize()) {
                     if (abs(doorAngle) < 90f) {
-                        drawDoorFace(tier, dialAngle, leverTurn, look, measurer)
+                        drawDoorFace(tier, dialAngle, leverTurn)
                     } else {
                         scale(-1f, 1f, pivot = center) { drawDoorBack() }
                     }
@@ -122,10 +114,8 @@ fun VaultStage(
 
             Canvas(Modifier.fillMaxSize().zIndex(3f)) { drawHinges() }
 
-            // 재물 장식: 금고 위에 얹힌 엽전 (문이 열려도 보인다)
-            if (look.has(Category.MONEY)) {
-                Canvas(Modifier.fillMaxSize().zIndex(3f)) { drawCoinCrest(look.alpha(Category.MONEY)) }
-            }
+            // 금고 아랫단에 붙는 라벨 줄 (문이 열려도 몸체에 붙어 있다)
+            Box(Modifier.align(Alignment.BottomCenter).offset(y = 22.dp).zIndex(5f)) { labels() }
         }
     }
 }
@@ -149,7 +139,7 @@ private fun DoorHint(modifier: Modifier) {
 
 /* ---------- 몸체 ---------- */
 
-private fun DrawScope.drawSafeBody(tier: Int, open: Float, look: Decor) {
+private fun DrawScope.drawSafeBody(tier: Int, open: Float) {
     val r = CornerRadius(16.dp.toPx())
     // 다리
     val footW = size.width * 0.14f
@@ -210,7 +200,7 @@ private fun DrawScope.drawHinges() {
 
 /* ---------- 문 ---------- */
 
-private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float, look: Decor, measurer: TextMeasurer) {
+private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float) {
     val r = CornerRadius(11.dp.toPx())
     drawRoundRect(
         Brush.linearGradient(listOf(Palette.DoorHi[tier], Palette.DoorLo[tier]), Offset.Zero, Offset(size.width, size.height)),
@@ -228,10 +218,6 @@ private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float
     for (fx in listOf(0.07f, 0.93f)) for (fy in listOf(0.07f, 0.93f)) {
         drawCircle(Color(0xFF9AA0A8), 2.dp.toPx(), Offset(size.width * fx, size.height * fy))
     }
-    // 성실 장식: 문 테두리를 따라 금 징
-    if (look.has(Category.STEADY)) drawStuds(look.alpha(Category.STEADY))
-    // 여유 장식: 네 모서리 구름 장석
-    if (look.has(Category.EASE)) drawCloudCorners(look.alpha(Category.EASE))
 
     val cx = size.width / 2
     // 다이얼 위 표시
@@ -275,8 +261,6 @@ private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float
             ),
             knob, c,
         )
-        // 행운 장식: 금빛 福 손잡이
-        if (look.has(Category.LUCK)) drawLuckKnob(c, knob, look.alpha(Category.LUCK), measurer)
         drawRoundRect(
             Palette.Gold, Offset(c.x - 2.dp.toPx(), c.y - knob * 0.9f), Size(4.dp.toPx(), knob * 0.28f),
             CornerRadius(2.dp.toPx()),
@@ -295,114 +279,6 @@ private fun DrawScope.drawDoorFace(tier: Int, dialAngle: Float, leverTurn: Float
             ),
             Offset(cx - lw / 2, ly), Size(lw, lh), CornerRadius(lh / 2),
         )
-    }
-    // 인연 장식: 손잡이에 매단 매듭 노리개
-    if (look.has(Category.BOND)) drawTassel(Offset(cx + lw * 0.36f, ly + lh * 0.5f), look.alpha(Category.BOND))
-}
-
-/* ---------- 문구 도감 장식 (카테고리를 다 모으면 생긴다) ---------- */
-
-class Decor(private val set: Set<Category>, private val fresh: Category?, private val progress: Float) {
-    fun has(c: Category) = c in set
-    fun alpha(c: Category) = if (c == fresh) progress.coerceIn(0f, 1f) else 1f
-}
-
-private val GoldFit = listOf(Color(0xFFFFF0B8), Color(0xFFE2B24A), Color(0xFF9C7123))
-
-private fun goldBrush(a: Offset, b: Offset) = Brush.linearGradient(GoldFit, a, b)
-
-/** 재물: 금고 꼭대기에 얹힌 엽전 */
-private fun DrawScope.drawCoinCrest(alpha: Float) {
-    val r = size.width * 0.085f
-    val c = Offset(size.width / 2, -r * 0.35f)
-    // 받침
-    drawRoundRect(
-        goldBrush(Offset(c.x - r, 0f), Offset(c.x + r, r * 0.4f)),
-        Offset(c.x - r * 0.75f, -r * 0.05f), Size(r * 1.5f, r * 0.42f), CornerRadius(r * 0.12f), alpha = alpha,
-    )
-    drawCircle(Color.Black.copy(alpha = 0.35f * alpha), r * 1.04f, c + Offset(0f, r * 0.08f))
-    drawCircle(goldBrush(c - Offset(r, r), c + Offset(r, r)), r, c, alpha = alpha)
-    drawCircle(Color(0xFF7A5718), r * 0.82f, c, alpha = alpha, style = Stroke(r * 0.07f))
-    val h = r * 0.3f
-    drawRect(Color(0xFF2A1C04), Offset(c.x - h, c.y - h), Size(h * 2, h * 2), alpha = alpha)
-    drawRect(Color(0xFFFFF0B8), Offset(c.x - h, c.y - h), Size(h * 2, h * 2), alpha = 0.5f * alpha, style = Stroke(r * 0.04f))
-}
-
-/** 행운: 다이얼 손잡이가 금빛으로 바뀌고 福 자가 새겨진다 */
-private fun DrawScope.drawLuckKnob(c: Offset, knob: Float, alpha: Float, measurer: TextMeasurer) {
-    drawCircle(
-        Brush.radialGradient(
-            0f to Color(0xFFFFF3C4), 0.4f to Color(0xFFE2B24A), 1f to Color(0xFF8A6316),
-            center = c + Offset(-knob * 0.25f, -knob * 0.4f), radius = knob * 1.3f,
-        ),
-        knob, c, alpha = alpha,
-    )
-    drawCircle(Color(0xFF7A5718), knob * 0.86f, c, alpha = alpha, style = Stroke(knob * 0.05f))
-    val layout = measurer.measure(
-        "福",
-        TextStyle(color = Color(0xFF6B4708), fontSize = (knob * 0.95f / density / fontScale).sp, fontWeight = FontWeight.Black),
-    )
-    drawText(layout, topLeft = c - Offset(layout.size.width / 2f, layout.size.height / 2f), alpha = alpha)
-}
-
-/** 인연: 붉은 매듭과 술 */
-private fun DrawScope.drawTassel(top: Offset, alpha: Float) {
-    val u = size.width * 0.016f
-    val red = Color(0xFFB0262C)
-    drawLine(red, top, top + Offset(0f, u * 1.6f), u * 0.5f, alpha = alpha)
-    // 매듭 (마름모)
-    val k = top + Offset(0f, u * 3f)
-    drawPath(
-        Path().apply {
-            moveTo(k.x, k.y - u * 1.5f); lineTo(k.x + u * 1.5f, k.y); lineTo(k.x, k.y + u * 1.5f); lineTo(k.x - u * 1.5f, k.y); close()
-        },
-        red, alpha = alpha,
-    )
-    drawCircle(goldBrush(k - Offset(u, u), k + Offset(u, u)), u * 0.7f, k, alpha = alpha)
-    // 금 고리 + 술
-    val ring = k + Offset(0f, u * 2.4f)
-    drawRoundRect(goldBrush(ring, ring + Offset(u * 2, u)), Offset(ring.x - u * 1.1f, ring.y - u * 0.5f), Size(u * 2.2f, u * 1.1f), CornerRadius(u * 0.4f), alpha = alpha)
-    val len = u * 6.5f
-    for (i in -4..4) {
-        val x0 = ring.x + i * u * 0.22f
-        drawLine(red, Offset(x0, ring.y + u * 0.5f), Offset(ring.x + i * u * 0.42f, ring.y + len), u * 0.32f, alpha = alpha)
-    }
-}
-
-/** 성실: 문 테두리를 따라 박힌 금 징 */
-private fun DrawScope.drawStuds(alpha: Float) {
-    val inset = size.width * 0.045f
-    val r = 1.9.dp.toPx()
-    val n = 9
-    for (i in 1 until n) {
-        val x = inset + (size.width - inset * 2) * i / n
-        val y = inset + (size.height - inset * 2) * i / n
-        listOf(Offset(x, inset), Offset(x, size.height - inset), Offset(inset, y), Offset(size.width - inset, y)).forEach { p ->
-            drawCircle(goldBrush(p - Offset(r, r), p + Offset(r, r)), r, p, alpha = alpha)
-        }
-    }
-}
-
-/** 여유: 네 모서리에 구름 모양 금 장석 */
-private fun DrawScope.drawCloudCorners(alpha: Float) {
-    val arm = size.width * 0.17f
-    val t = size.width * 0.032f
-    val m = size.width * 0.03f
-    for ((sx, sy) in listOf(1f to 1f, -1f to 1f, 1f to -1f, -1f to -1f)) {
-        val o = Offset(if (sx > 0) m else size.width - m, if (sy > 0) m else size.height - m)
-        fun pt(dx: Float, dy: Float) = Offset(o.x + dx * sx, o.y + dy * sy)
-        val b = goldBrush(pt(0f, 0f), pt(arm, arm))
-        val h0 = pt(0f, 0f); val h1 = pt(arm, t)
-        drawRect(b, Offset(minOf(h0.x, h1.x), minOf(h0.y, h1.y)), Size(arm, t), alpha = alpha)
-        val v1 = pt(t, arm)
-        drawRect(b, Offset(minOf(h0.x, v1.x), minOf(h0.y, v1.y)), Size(t, arm), alpha = alpha)
-        // 구름 꽃잎
-        drawCircle(b, t * 1.25f, pt(t * 0.9f, t * 0.9f), alpha = alpha)
-        drawCircle(b, t * 0.85f, pt(arm, t / 2), alpha = alpha)
-        drawCircle(b, t * 0.85f, pt(t / 2, arm), alpha = alpha)
-        drawCircle(b, t * 0.6f, pt(arm * 0.62f, t * 1.15f), alpha = alpha)
-        drawCircle(b, t * 0.6f, pt(t * 1.15f, arm * 0.62f), alpha = alpha)
-        drawCircle(Color(0xFF6B4708), t * 0.28f, pt(t * 0.9f, t * 0.9f), alpha = alpha)
     }
 }
 

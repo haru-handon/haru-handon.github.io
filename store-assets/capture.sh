@@ -64,6 +64,8 @@ seed_dogam() {
     echo '    <boolean name="sound_on" value="true" />'
     echo "    <string name=\"fortune_counts\">$counts</string>"
     echo "    <int name=\"debug_next_fortune\" value=\"$next\" />"
+    echo "    <int name=\"debug_next_bonus\" value=\"31\" />"
+    echo '    <boolean name="debug_fake_ad" value="true" />'
     echo '    <set name="attended_days">'
     for i in $(seq 1 "$n"); do
       echo "        <string>$(date -d "$TODAY -$i day" +%F)</string>"
@@ -120,6 +122,13 @@ sleep 4.0
 shot 13-dogam-open
 sleep 1.3
 shot 14-dogam-label
+sleep 3
+shot 20-bonus-btn
+tap_text "광고 보고 문구"
+sleep 1.5
+shot 21-bonus-ad
+sleep 4.5
+shot 22-bonus-got
 sleep 3
 tap_text "금고 보관"
 sleep 3

@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import com.ohsang.util.haruhandon.ads.RewardedAds
 import com.ohsang.util.haruhandon.data.HandonStore
 import com.ohsang.util.haruhandon.notify.DailyReminder
 import com.ohsang.util.haruhandon.sound.Sfx
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
 
         DailyReminder.ensureChannel(this)
         DailyReminder.schedule(this)
+        RewardedAds.start(this)
 
         setContent {
             HomeScreen(

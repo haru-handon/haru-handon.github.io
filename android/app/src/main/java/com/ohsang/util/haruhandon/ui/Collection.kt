@@ -2,6 +2,8 @@ package com.ohsang.util.haruhandon.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -10,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,11 +42,69 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohsang.util.haruhandon.data.Category
 import com.ohsang.util.haruhandon.data.Fortunes
+
+private val BrassPlate = Brush.verticalGradient(
+    0f to Color(0xFFF7DE8C), 0.45f to Color(0xFFD6A647), 1f to Color(0xFF9C7123),
+)
+private val BrassText = Color(0xFF4A3208)
+
+/**
+ * 금고 앞에 붙는 놋쇠 라벨 줄. 다 모은 카테고리는 라벨이 붙고, 아직이면 빈 자리만 보인다.
+ * [fresh] 는 방금 붙은 라벨 — 툭 하고 붙는 움직임을 준다.
+ */
+@Composable
+fun VaultLabels(done: Set<Category>, fresh: Category?, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Category.entries.forEach { c ->
+            if (c in done) LabelPlate(c.label, isFresh = c == fresh) else EmptySlot()
+        }
+    }
+}
+
+@Composable
+private fun LabelPlate(text: String, isFresh: Boolean) {
+    val pop = remember(isFresh) { Animatable(if (isFresh) 0f else 1f) }
+    LaunchedEffect(isFresh) {
+        if (isFresh) pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 300f))
+    }
+    Box(
+        Modifier
+            .graphicsLayer {
+                val s = 1.8f - 0.8f * pop.value
+                scaleX = s
+                scaleY = s
+                alpha = pop.value.coerceIn(0f, 1f)
+            }
+            .size(width = 44.dp, height = 18.dp)
+            .background(BrassPlate, RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFF6E4E12), RoundedCornerShape(4.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 작은 나사 두 개
+        Row(Modifier.fillMaxSize().padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(3.dp).background(Color(0xFF7A5718), CircleShape))
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.size(3.dp).background(Color(0xFF7A5718), CircleShape))
+        }
+        Text(text, color = BrassText, fontSize = 10.5.sp, fontFamily = SerifFamily, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+@Composable
+private fun EmptySlot() {
+    Box(
+        Modifier
+            .size(width = 44.dp, height = 18.dp)
+            .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(4.dp))
+    )
+}
 
 /**
  * 문구 도감. 왼쪽 카테고리 목록은 고정, 오른쪽 문구 목록만 스크롤된다.
@@ -76,8 +137,10 @@ fun CollectionScreen(visible: Boolean, counts: Map<Int, Int>, done: Set<Category
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("$have", color = Palette.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        Text(" / ${Fortunes.ALL.size} 모음  ·  금고 장식 ${done.size} / ${Category.entries.size}", color = Palette.Muted, fontSize = 12.sp)
+                        Text(" / ${Fortunes.ALL.size} 모음", color = Palette.Muted, fontSize = 12.sp)
                     }
+                    Spacer(Modifier.height(8.dp))
+                    VaultLabels(done, fresh = null)
                 }
                 Text(
                     "닫기",
@@ -197,13 +260,11 @@ private fun CategoryHead(c: Category, got: Int, size: Int, complete: Boolean) {
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Text(
-                if (complete) "금고 장식 · ${c.decor} 달았어요" else "다 모으면 금고 장식 · ${c.decor}",
+                if (complete) "금고에 「${c.label}」 라벨을 붙였어요" else "다 모으면 금고에 「${c.label}」 라벨이 붙어요",
                 color = if (complete) Palette.GoldHi else Palette.Text,
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(c.decorHint, color = Palette.Muted, fontSize = 11.5.sp)
         }
         Spacer(Modifier.height(4.dp))
     }

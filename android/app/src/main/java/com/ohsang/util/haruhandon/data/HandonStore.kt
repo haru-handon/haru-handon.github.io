@@ -39,7 +39,7 @@ class HandonStore(context: Context) {
         val key = today().toString()
         val current = days()
         if (key in current) return false
-        val drawn = debugForcedFortune() ?: Fortunes.draw()
+        val drawn = debugForced(KEY_DEBUG_NEXT) ?: Fortunes.draw()
         val counts = fortuneCounts().toMutableMap()
         counts[drawn.id] = (counts[drawn.id] ?: 0) + 1
         prefs.edit {
@@ -63,6 +63,34 @@ class HandonStore(context: Context) {
         if (date != today().toString()) return null
         return id.toIntOrNull()?.let { Fortunes.of(it) }
     }
+
+    /** 광고를 보고 하나 더 받은 오늘의 문구 (하루 한 번) */
+    fun bonusFortune(): Fortune? {
+        val raw = prefs.getString(KEY_BONUS, null) ?: return null
+        val (date, id) = raw.split('|').takeIf { it.size == 2 } ?: return null
+        if (date != today().toString()) return null
+        return id.toIntOrNull()?.let { Fortunes.of(it) }
+    }
+
+    /** 오늘 금고를 열었고, 아직 보너스 문구를 안 받았을 때만 */
+    fun canTakeBonus(): Boolean = todayFortune() != null && bonusFortune() == null
+
+    /** 보상형 광고를 끝까지 본 뒤: 문구를 하나 더 뽑아 도감에 넣는다. 금은 늘지 않는다. */
+    fun takeBonus(): Fortune? {
+        if (!canTakeBonus()) return null
+        val drawn = debugForced(KEY_DEBUG_BONUS) ?: Fortunes.draw()
+        val counts = fortuneCounts().toMutableMap()
+        counts[drawn.id] = (counts[drawn.id] ?: 0) + 1
+        prefs.edit {
+            putString(KEY_COUNTS, encode(counts))
+            putString(KEY_BONUS, "${today()}|${drawn.id}")
+            remove(KEY_DEBUG_BONUS)
+        }
+        return drawn
+    }
+
+    /** 디버그 캡처용: 실제 광고 대신 자리만 보여준다 */
+    fun debugFakeAd(): Boolean = BuildConfig.DEBUG && prefs.getBoolean(KEY_DEBUG_FAKE_AD, false)
 
     fun collectedCount(): Int = fortuneCounts().keys.count { Fortunes.of(it) != null }
 
@@ -88,9 +116,9 @@ class HandonStore(context: Context) {
     }
 
     /** 디버그 빌드에서 캡처할 때만: 다음에 뽑힐 문구를 정해 둔다 */
-    private fun debugForcedFortune(): Fortune? {
+    private fun debugForced(key: String): Fortune? {
         if (!BuildConfig.DEBUG) return null
-        val id = prefs.getInt(KEY_DEBUG_NEXT, -1)
+        val id = prefs.getInt(key, -1)
         return if (id >= 0) Fortunes.of(id) else null
     }
 
@@ -125,5 +153,8 @@ class HandonStore(context: Context) {
         private const val KEY_COUNTS = "fortune_counts"
         private const val KEY_TODAY_FORTUNE = "today_fortune"
         private const val KEY_DEBUG_NEXT = "debug_next_fortune"
+        private const val KEY_BONUS = "bonus_fortune"
+        private const val KEY_DEBUG_BONUS = "debug_next_bonus"
+        private const val KEY_DEBUG_FAKE_AD = "debug_fake_ad"
     }
 }
