@@ -121,7 +121,7 @@ shot 13-dogam-open
 sleep 2.4
 shot 14-dogam-label
 sleep 2
-tap_text "도감 "
+tap_text "문구 도감"
 sleep 1.5
 shot 15-dogam-book
 adb shell input swipe 540 1600 540 500 600

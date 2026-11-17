@@ -309,7 +309,12 @@ fun HomeScreen(
             }
 
             FortuneCard(today, if (fortuneVisible) fortune else null, fortuneIsNew, fortune?.let { counts[it.id] } ?: 0)
-            Foot(open = phase == Phase.Open, onClose = ::closeVault)
+            Foot(
+                open = phase == Phase.Open,
+                onClose = ::closeVault,
+                collected = counts.count { it.value > 0 },
+                onOpenDogam = { dogamOpen = true },
+            )
 
         }
 
@@ -492,7 +497,7 @@ private fun FortuneCard(today: LocalDate, fortune: Fortune?, isNew: Boolean, cou
 }
 
 @Composable
-private fun Foot(open: Boolean, onClose: () -> Unit) {
+private fun Foot(open: Boolean, onClose: () -> Unit, collected: Int, onOpenDogam: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -500,27 +505,47 @@ private fun Foot(open: Boolean, onClose: () -> Unit) {
             .padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (open) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("금괴를 잡고 옆으로 돌리면 뒷면이 보여요", color = Palette.Faint, fontSize = 11.5.sp)
-                Spacer(Modifier.height(8.dp))
-                Box(
-                    Modifier
-                        .background(Palette.Panel, RoundedCornerShape(22.dp))
-                        .border(1.dp, Palette.Line, RoundedCornerShape(22.dp))
-                        .clickable(onClick = onClose)
-                        .padding(horizontal = 24.dp, vertical = 10.dp)
-                ) {
-                    Text("금고 보관", color = Palette.Text, fontSize = 13.sp)
-                }
-            }
-        } else {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "하루 한 번 금고를 열면 금 1돈이 더해져요",
+                if (open) "금괴를 잡고 옆으로 돌리면 뒷면이 보여요" else "하루 한 번 금고를 열면 금 1돈과 문구 하나를 받아요",
                 color = Palette.Faint,
-                fontSize = 12.sp,
+                fontSize = 11.5.sp,
                 textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DogamButton(collected, onOpenDogam)
+                if (open) {
+                    Box(
+                        Modifier
+                            .background(Palette.Panel, RoundedCornerShape(22.dp))
+                            .border(1.dp, Palette.Line, RoundedCornerShape(22.dp))
+                            .clickable(onClick = onClose)
+                            .padding(horizontal = 24.dp, vertical = 10.dp)
+                    ) {
+                        Text("금고 보관", color = Palette.Text, fontSize = 13.sp)
+                    }
+                }
+            }
         }
+    }
+}
+
+/** 문구 도감 입구: 금고 바로 아래 눈에 띄는 금테 버튼 */
+@Composable
+private fun DogamButton(collected: Int, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .background(Palette.GoldLo.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
+            .border(1.dp, Palette.Gold, RoundedCornerShape(22.dp))
+            .clickable(onClick = onClick)
+            .padding(start = 18.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("문구 도감", color = Palette.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.width(8.dp))
+        Text("$collected/${com.ohsang.util.haruhandon.data.Fortunes.ALL.size}", color = Palette.Gold, fontSize = 12.sp)
+        Spacer(Modifier.width(6.dp))
+        Text("›", color = Palette.GoldHi, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
