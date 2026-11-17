@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -110,12 +109,13 @@ fun VaultStage(
                     }
                 }
                 if (showHint) DoorHint(Modifier.align(BiasAlignment(0f, 0.62f)))
+                // 문 왼쪽 위에 붙은 라벨 (문이 열리면 문과 함께 돌아가 안 보인다)
+                if (abs(doorAngle) < 90f) {
+                    Box(Modifier.align(Alignment.TopStart).padding(start = w * 0.07f, top = w * 0.085f)) { labels() }
+                }
             }
 
             Canvas(Modifier.fillMaxSize().zIndex(3f)) { drawHinges() }
-
-            // 금고 아랫단에 붙는 라벨 줄 (문이 열려도 몸체에 붙어 있다)
-            Box(Modifier.align(Alignment.BottomCenter).offset(y = 22.dp).zIndex(5f)) { labels() }
         }
     }
 }

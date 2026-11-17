@@ -55,14 +55,19 @@ private val BrassPlate = Brush.verticalGradient(
 private val BrassText = Color(0xFF4A3208)
 
 /**
- * 금고 앞에 붙는 놋쇠 라벨 줄. 다 모은 카테고리는 라벨이 붙고, 아직이면 빈 자리만 보인다.
- * [fresh] 는 방금 붙은 라벨 — 툭 하고 붙는 움직임을 준다.
+ * 금고 문 왼쪽 위에 붙는 놋쇠 라벨. 다 모은 카테고리만 순서대로 붙는다.
+ * [fresh] 는 방금 붙은 라벨 — 문이 닫히며 보일 때 툭 하고 붙는다.
  */
 @Composable
-fun VaultLabels(done: Set<Category>, fresh: Category?, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Category.entries.forEach { c ->
-            if (c in done) LabelPlate(c.label, isFresh = c == fresh) else EmptySlot()
+fun VaultLabels(done: Set<Category>, fresh: Category?, modifier: Modifier = Modifier, vertical: Boolean = true) {
+    val earned = Category.entries.filter { it in done }
+    if (vertical) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            earned.forEach { LabelPlate(it.label, isFresh = it == fresh) }
+        }
+    } else {
+        Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            earned.forEach { LabelPlate(it.label, isFresh = it == fresh) }
         }
     }
 }
@@ -81,7 +86,7 @@ private fun LabelPlate(text: String, isFresh: Boolean) {
                 scaleY = s
                 alpha = pop.value.coerceIn(0f, 1f)
             }
-            .size(width = 44.dp, height = 18.dp)
+            .size(width = 40.dp, height = 16.dp)
             .background(BrassPlate, RoundedCornerShape(4.dp))
             .border(1.dp, Color(0xFF6E4E12), RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center,
@@ -92,109 +97,10 @@ private fun LabelPlate(text: String, isFresh: Boolean) {
             Spacer(Modifier.weight(1f))
             Box(Modifier.size(3.dp).background(Color(0xFF7A5718), CircleShape))
         }
-        Text(text, color = BrassText, fontSize = 10.5.sp, fontFamily = SerifFamily, fontWeight = FontWeight.ExtraBold)
+        Text(text, color = BrassText, fontSize = 9.5.sp, fontFamily = SerifFamily, fontWeight = FontWeight.ExtraBold)
     }
 }
 
-@Composable
-private fun EmptySlot() {
-    Box(
-        Modifier
-            .size(width = 44.dp, height = 18.dp)
-            .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(4.dp))
-    )
-}
-
-/**
- * 문구 도감. 왼쪽 카테고리 목록은 고정, 오른쪽 문구 목록만 스크롤된다.
- * 못 모은 문구는 ??? 로만 보인다.
- */
-@Composable
-fun CollectionScreen(visible: Boolean, counts: Map<Int, Int>, done: Set<Category>, onClose: () -> Unit) {
-    if (visible) BackHandler(onBack = onClose)
-    var selected by remember { mutableStateOf(Category.MONEY) }
-    AnimatedVisibility(
-        visible,
-        enter = slideInVertically { it / 6 } + fadeIn(),
-        exit = slideOutVertically { it / 6 } + fadeOut(),
-    ) {
-        val have = counts.keys.count { Fortunes.of(it) != null }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(Palette.Ink)
-                .clickable(remember { MutableInteractionSource() }, indication = null) {}
-                .safeDrawingPadding()
-        ) {
-            // 제목줄
-            Row(
-                Modifier.fillMaxWidth().padding(start = 22.dp, end = 10.dp, top = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("문구 도감", color = Palette.GoldHi, fontSize = 21.sp, fontFamily = SerifFamily, fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("$have", color = Palette.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        Text(" / ${Fortunes.ALL.size} 모음", color = Palette.Muted, fontSize = 12.sp)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    VaultLabels(done, fresh = null)
-                }
-                Text(
-                    "닫기",
-                    color = Palette.Text,
-                    fontSize = 14.sp,
-                    modifier = Modifier.clickable(onClick = onClose).padding(12.dp),
-                )
-            }
-            Spacer(Modifier.height(14.dp))
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Line))
-
-            Row(Modifier.fillMaxSize()) {
-                // 왼쪽: 카테고리 (고정)
-                Column(
-                    Modifier
-                        .width(96.dp)
-                        .fillMaxHeight()
-                        .background(Color.Black.copy(alpha = 0.25f))
-                        .padding(vertical = 8.dp)
-                ) {
-                    Category.entries.forEach { c ->
-                        val list = Fortunes.inCategory(c)
-                        NavItem(
-                            c = c,
-                            got = list.count { it.id in counts },
-                            size = list.size,
-                            complete = c in done,
-                            selected = c == selected,
-                            onClick = { selected = c },
-                        )
-                    }
-                }
-                Box(Modifier.width(1.dp).fillMaxHeight().background(Palette.Line))
-
-                // 오른쪽: 고른 카테고리의 문구만 스크롤
-                val list = Fortunes.inCategory(selected)
-                val state = rememberLazyListState()
-                LaunchedEffect(selected) { state.scrollToItem(0) }
-                LazyColumn(
-                    Modifier.weight(1f).fillMaxHeight(),
-                    state = state,
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                ) {
-                    item(key = "head-${selected.name}") {
-                        CategoryHead(selected, list.count { it.id in counts }, list.size, selected in done)
-                    }
-                    itemsIndexed(list, key = { _, f -> f.id }) { i, f ->
-                        EntryRow(i + 1, if (f.id in counts) f.text else null)
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun NavItem(c: Category, got: Int, size: Int, complete: Boolean, selected: Boolean, onClick: () -> Unit) {
