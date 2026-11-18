@@ -151,6 +151,21 @@ private struct EntryRow: View {
 
 /// 1냥(10돈)마다 나오는 축하 화면
 struct NyangCelebration: View {
+    static func rays(_ g: inout GraphicsContext, size: CGSize) {
+        let c = CGPoint(x: size.width / 2, y: size.height * 0.4)
+        let glow = Gradient(colors: [Palette.goldHi.opacity(0.28), .clear])
+        for i in 0..<16 {
+            let a: CGFloat = CGFloat(i) / 16 * .pi * 2
+            let l: CGFloat = 600
+            var p = Path()
+            p.move(to: c)
+            p.addLine(to: CGPoint(x: c.x + cos(a - 0.08) * l, y: c.y + sin(a - 0.08) * l))
+            p.addLine(to: CGPoint(x: c.x + cos(a + 0.08) * l, y: c.y + sin(a + 0.08) * l))
+            p.closeSubpath()
+            g.fill(p, with: .radialGradient(glow, center: c, startRadius: 0, endRadius: 420))
+        }
+    }
+
     let don: Int
     let onDismiss: () -> Void
     @State private var spin = false
@@ -161,17 +176,7 @@ struct NyangCelebration: View {
             Color.black.opacity(0.82).ignoresSafeArea()
             // 빛줄기
             Canvas { g, size in
-                let c = CGPoint(x: size.width / 2, y: size.height * 0.4)
-                for i in 0..<16 {
-                    let a = Double(i) / 16 * .pi * 2
-                    var p = Path()
-                    p.move(to: c)
-                    p.addLine(to: CGPoint(x: c.x + cos(a - 0.08) * 600, y: c.y + sin(a - 0.08) * 600))
-                    p.addLine(to: CGPoint(x: c.x + cos(a + 0.08) * 600, y: c.y + sin(a + 0.08) * 600))
-                    p.closeSubpath()
-                    g.fill(p, with: .radialGradient(Gradient(colors: [Palette.goldHi.opacity(0.28), .clear]),
-                                                    center: c, startRadius: 0, endRadius: 420))
-                }
+                NyangCelebration.rays(&g, size: size)
             }
             .rotationEffect(.degrees(spin ? 30 : 0))
             .ignoresSafeArea()

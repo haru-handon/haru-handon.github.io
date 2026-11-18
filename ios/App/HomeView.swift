@@ -312,15 +312,7 @@ struct SparkLayer: View {
                 guard p < 1 else { return }
                 let c = CGPoint(x: size.width * b.at.x, y: size.height * b.at.y)
                 for i in 0..<b.count {
-                    let seed = Double(i) * 2.399 + Double(abs(b.id.hashValue % 97))
-                    let ang = seed.truncatingRemainder(dividingBy: .pi * 2)
-                    let dist = (60 + (seed * 37).truncatingRemainder(dividingBy: 70)) * (1 - pow(1 - p, 3))
-                    let r = (3.5 - 2.5 * p)
-                    let pt = CGPoint(x: c.x + cos(ang) * dist, y: c.y + sin(ang) * dist + 30 * p * p)
-                    var gg = g
-                    gg.opacity = 1 - p
-                    gg.fill(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r, width: r * 2, height: r * 2)),
-                            with: .color(i % 2 == 0 ? Palette.goldHi : Palette.gold))
+                    SparkLayer.spark(&g, center: c, index: i, seed: abs(b.id.hashValue % 97), p: CGFloat(p))
                 }
             }
         }
@@ -330,6 +322,22 @@ struct SparkLayer: View {
 }
 
 private var burstStart: [UUID: Date] = [:]
+
+extension SparkLayer {
+    static func spark(_ g: inout GraphicsContext, center c: CGPoint, index i: Int, seed s: Int, p: CGFloat) {
+        let seed: CGFloat = CGFloat(i) * 2.399 + CGFloat(s)
+        let ang: CGFloat = seed.truncatingRemainder(dividingBy: .pi * 2)
+        let ease: CGFloat = 1 - pow(1 - p, 3)
+        let dist: CGFloat = (60 + (seed * 37).truncatingRemainder(dividingBy: 70)) * ease
+        let r: CGFloat = 3.5 - 2.5 * p
+        let x: CGFloat = c.x + cos(ang) * dist
+        let y: CGFloat = c.y + sin(ang) * dist + 30 * p * p
+        var gg = g
+        gg.opacity = Double(1 - p)
+        let dot = Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
+        gg.fill(dot, with: .color(i % 2 == 0 ? Palette.goldHi : Palette.gold))
+    }
+}
 
 /// 디버그 캡처 전용: 실제 보상형 광고가 뜨는 자리
 struct AdStandIn: View {

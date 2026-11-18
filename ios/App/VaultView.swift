@@ -57,37 +57,51 @@ private struct SafeBody: View {
 
     var body: some View {
         Canvas { g, size in
-            let w = size.width, h = size.height
-            // 다리
-            let footW = w * 0.14, footH: CGFloat = 9
-            for fx in [0.10, 0.76] {
-                g.fill(Path(roundedRect: CGRect(x: w * fx, y: h - footH, width: footW, height: footH * 2), cornerRadius: 4),
-                       with: .color(Color(hex: 0x15171A)))
-            }
-            let body = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 16)
-            g.fill(body, with: .linearGradient(Gradient(stops: [
-                .init(color: Color(hex: 0x41464E), location: 0), .init(color: Color(hex: 0x262A2F), location: 0.55),
-                .init(color: Color(hex: 0x1A1D21), location: 1),
-            ]), startPoint: .zero, endPoint: CGPoint(x: w, y: h)))
-            g.stroke(body, with: .color(Color(hex: 0x15171A)), lineWidth: 2)
-            g.stroke(Path { p in p.move(to: CGPoint(x: 16, y: 1)); p.addLine(to: CGPoint(x: w - 16, y: 1)) },
-                     with: .color(.white.opacity(0.14)), lineWidth: 1)
-            // 안쪽
-            let inset = w * 0.075
-            let inner = CGRect(x: inset, y: inset, width: w - inset * 2, height: h - inset * 2)
-            let ip = Path(roundedRect: inner, cornerRadius: 9)
-            g.fill(ip, with: .radialGradient(Gradient(stops: [
-                .init(color: Color(hex: 0x2B1F0B), location: 0), .init(color: Color(hex: 0x0D0A05), location: 0.75),
-                .init(color: Color(hex: 0x0D0A05), location: 1),
-            ]), center: CGPoint(x: w / 2, y: inner.minY + inner.height * 0.85), startRadius: 0, endRadius: inner.width * 0.9))
-            g.stroke(ip, with: .color(.black), lineWidth: 1)
-            if open > 0 {
-                var g2 = g
-                g2.opacity = open
-                g2.fill(ip, with: .radialGradient(Gradient(colors: [Color(hex: 0xFBE7A6, alpha: 0.35), .clear]),
-                                                  center: CGPoint(x: w / 2, y: inner.minY + inner.height * 0.55),
-                                                  startRadius: 0, endRadius: inner.width * 0.7))
-            }
+            SafeBody.paint(&g, size: size, open: CGFloat(open))
+        }
+    }
+
+    static func paint(_ g: inout GraphicsContext, size: CGSize, open: CGFloat) {
+        let w: CGFloat = size.width
+        let h: CGFloat = size.height
+        // 다리
+        let footW: CGFloat = w * 0.14
+        let footH: CGFloat = 9
+        let feet: [CGFloat] = [0.10, 0.76]
+        for fx in feet {
+            let foot = Path(roundedRect: CGRect(x: w * fx, y: h - footH, width: footW, height: footH * 2), cornerRadius: 4)
+            g.fill(foot, with: .color(Color(hex: 0x15171A)))
+        }
+        let body = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 16)
+        let bodyGrad = Gradient(stops: [
+            .init(color: Color(hex: 0x41464E), location: 0),
+            .init(color: Color(hex: 0x262A2F), location: 0.55),
+            .init(color: Color(hex: 0x1A1D21), location: 1),
+        ])
+        g.fill(body, with: .linearGradient(bodyGrad, startPoint: .zero, endPoint: CGPoint(x: w, y: h)))
+        g.stroke(body, with: .color(Color(hex: 0x15171A)), lineWidth: 2)
+        var top = Path()
+        top.move(to: CGPoint(x: 16, y: 1))
+        top.addLine(to: CGPoint(x: w - 16, y: 1))
+        g.stroke(top, with: .color(.white.opacity(0.14)), lineWidth: 1)
+        // 안쪽
+        let inset: CGFloat = w * 0.075
+        let inner = CGRect(x: inset, y: inset, width: w - inset * 2, height: h - inset * 2)
+        let ip = Path(roundedRect: inner, cornerRadius: 9)
+        let innerGrad = Gradient(stops: [
+            .init(color: Color(hex: 0x2B1F0B), location: 0),
+            .init(color: Color(hex: 0x0D0A05), location: 0.75),
+            .init(color: Color(hex: 0x0D0A05), location: 1),
+        ])
+        let innerCenter = CGPoint(x: w / 2, y: inner.minY + inner.height * 0.85)
+        g.fill(ip, with: .radialGradient(innerGrad, center: innerCenter, startRadius: 0, endRadius: inner.width * 0.9))
+        g.stroke(ip, with: .color(.black), lineWidth: 1)
+        if open > 0 {
+            var g2 = g
+            g2.opacity = Double(open)
+            let glow = Gradient(colors: [Color(hex: 0xFBE7A6, alpha: 0.35), .clear])
+            let glowCenter = CGPoint(x: w / 2, y: inner.minY + inner.height * 0.55)
+            g2.fill(ip, with: .radialGradient(glow, center: glowCenter, startRadius: 0, endRadius: inner.width * 0.7))
         }
     }
 }
@@ -164,69 +178,93 @@ private struct DoorFace: View, Animatable {
 
     var body: some View {
         Canvas { g, size in
-            let w = size.width, h = size.height
-            let face = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 11)
-            g.fill(face, with: .linearGradient(Gradient(colors: [Palette.doorHi[tier], Palette.doorLo[tier]]),
-                                               startPoint: .zero, endPoint: CGPoint(x: w, y: h)))
-            g.stroke(Path(roundedRect: CGRect(x: 3.5, y: 3.5, width: w - 7, height: h - 7), cornerRadius: 7.5),
-                     with: .color(.black.opacity(0.35)), lineWidth: 5)
-            g.stroke(face, with: .color(Palette.rim[tier]), lineWidth: 2)
-            g.stroke(Path { p in p.move(to: CGPoint(x: 11, y: 2)); p.addLine(to: CGPoint(x: w - 11, y: 2)) },
-                     with: .color(.white.opacity(0.15)), lineWidth: 1)
-            // 리벳
-            for fx in [0.07, 0.93] { for fy in [0.07, 0.93] {
-                g.fill(Path(ellipseIn: CGRect(x: w * fx - 2, y: h * fy - 2, width: 4, height: 4)), with: .color(Color(hex: 0x9AA0A8)))
-            } }
-            let cx = w / 2
-            // 다이얼 위 표시
-            let py = h * 0.12
-            g.fill(Path { p in
-                p.move(to: CGPoint(x: cx - 6, y: py)); p.addLine(to: CGPoint(x: cx + 6, y: py)); p.addLine(to: CGPoint(x: cx, y: py + 9)); p.closeSubpath()
-            }, with: .color(Palette.gold))
-
-            // 다이얼
-            let c = CGPoint(x: cx, y: h * 0.43)
-            let outer = w * 0.27
-            func circle(_ r: CGFloat) -> Path { Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)) }
-            g.fill(circle(outer), with: .color(Color(hex: 0x15171A)))
-            g.stroke(circle(outer * 0.97), with: .color(Color(hex: 0x2A2E33)), lineWidth: 2)
-            let ring = outer * 0.88
-            var d = g
-            d.translateBy(x: c.x, y: c.y)
-            d.rotate(by: .degrees(dial))
-            d.translateBy(x: -c.x, y: -c.y)
-            d.fill(circle(ring), with: .radialGradient(Gradient(colors: [Color(hex: 0x4A5058), Color(hex: 0x2B2F34)]),
-                                                       center: c, startRadius: 0, endRadius: ring))
-            for i in 0..<36 {
-                let a = (Double(i) * 10 - 90) * .pi / 180
-                let major = i % 3 == 0
-                let r1 = ring * 0.97, r2 = ring * (major ? 0.76 : 0.85)
-                d.stroke(Path { p in
-                    p.move(to: CGPoint(x: c.x + cos(a) * r1, y: c.y + sin(a) * r1))
-                    p.addLine(to: CGPoint(x: c.x + cos(a) * r2, y: c.y + sin(a) * r2))
-                }, with: .color(Color(hex: 0xE2E5E9)), lineWidth: major ? 1.6 : 1)
-            }
-            d.stroke(circle(ring * 0.64), with: .color(Color(hex: 0x0F1012)), lineWidth: 1)
-            let knob = ring * 0.56
-            d.fill(circle(knob), with: .radialGradient(Gradient(stops: [
-                .init(color: Color(hex: 0xA3A9B1), location: 0), .init(color: Color(hex: 0x5D636B), location: 0.38),
-                .init(color: Color(hex: 0x2A2E33), location: 1),
-            ]), center: CGPoint(x: c.x - knob * 0.25, y: c.y - knob * 0.4), startRadius: 0, endRadius: knob * 1.3))
-            d.fill(Path(roundedRect: CGRect(x: c.x - 2, y: c.y - knob * 0.9, width: 4, height: knob * 0.28), cornerRadius: 2),
-                   with: .color(Palette.gold))
-
-            // 손잡이
-            let lw = w * 0.34, lh = h * 0.07, ly = h * (1 - 0.11 - 0.07)
-            var l = g
-            l.translateBy(x: cx, y: ly + lh / 2)
-            l.rotate(by: .degrees(-28 * lever))
-            l.translateBy(x: -cx, y: -(ly + lh / 2))
-            l.fill(Path(roundedRect: CGRect(x: cx - lw / 2, y: ly, width: lw, height: lh), cornerRadius: lh / 2),
-                   with: .linearGradient(Gradient(stops: [
-                       .init(color: Color(hex: 0x9AA0A8), location: 0), .init(color: Color(hex: 0x4D535B), location: 0.6),
-                       .init(color: Color(hex: 0x2A2E33), location: 1),
-                   ]), startPoint: CGPoint(x: 0, y: ly), endPoint: CGPoint(x: 0, y: ly + lh)))
+            DoorFace.paint(&g, size: size, tier: tier, dial: CGFloat(dial), lever: CGFloat(lever))
         }
+    }
+
+    private static func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+    }
+
+    static func paint(_ g: inout GraphicsContext, size: CGSize, tier: Int, dial: CGFloat, lever: CGFloat) {
+        let w: CGFloat = size.width
+        let h: CGFloat = size.height
+        let face = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 11)
+        let doorGrad = Gradient(colors: [Palette.doorHi[tier], Palette.doorLo[tier]])
+        g.fill(face, with: .linearGradient(doorGrad, startPoint: .zero, endPoint: CGPoint(x: w, y: h)))
+        let innerRim = Path(roundedRect: CGRect(x: 3.5, y: 3.5, width: w - 7, height: h - 7), cornerRadius: 7.5)
+        g.stroke(innerRim, with: .color(.black.opacity(0.35)), lineWidth: 5)
+        g.stroke(face, with: .color(Palette.rim[tier]), lineWidth: 2)
+        var top = Path()
+        top.move(to: CGPoint(x: 11, y: 2))
+        top.addLine(to: CGPoint(x: w - 11, y: 2))
+        g.stroke(top, with: .color(.white.opacity(0.15)), lineWidth: 1)
+        // 리벳
+        let rivetFracs: [CGFloat] = [0.07, 0.93]
+        for fx in rivetFracs {
+            for fy in rivetFracs {
+                g.fill(circle(CGPoint(x: w * fx, y: h * fy), 2), with: .color(Color(hex: 0x9AA0A8)))
+            }
+        }
+        let cx: CGFloat = w / 2
+        // 다이얼 위 표시
+        let py: CGFloat = h * 0.12
+        var mark = Path()
+        mark.move(to: CGPoint(x: cx - 6, y: py))
+        mark.addLine(to: CGPoint(x: cx + 6, y: py))
+        mark.addLine(to: CGPoint(x: cx, y: py + 9))
+        mark.closeSubpath()
+        g.fill(mark, with: .color(Palette.gold))
+
+        // 다이얼
+        let c = CGPoint(x: cx, y: h * 0.43)
+        let outer: CGFloat = w * 0.27
+        g.fill(circle(c, outer), with: .color(Color(hex: 0x15171A)))
+        g.stroke(circle(c, outer * 0.97), with: .color(Color(hex: 0x2A2E33)), lineWidth: 2)
+        let ring: CGFloat = outer * 0.88
+        var d = g
+        d.translateBy(x: c.x, y: c.y)
+        d.rotate(by: .degrees(Double(dial)))
+        d.translateBy(x: -c.x, y: -c.y)
+        let ringGrad = Gradient(colors: [Color(hex: 0x4A5058), Color(hex: 0x2B2F34)])
+        d.fill(circle(c, ring), with: .radialGradient(ringGrad, center: c, startRadius: 0, endRadius: ring))
+        for i in 0..<36 {
+            let a: CGFloat = (CGFloat(i) * 10 - 90) * .pi / 180
+            let major: Bool = i % 3 == 0
+            let r1: CGFloat = ring * 0.97
+            let r2: CGFloat = ring * (major ? 0.76 : 0.85)
+            var tick = Path()
+            tick.move(to: CGPoint(x: c.x + cos(a) * r1, y: c.y + sin(a) * r1))
+            tick.addLine(to: CGPoint(x: c.x + cos(a) * r2, y: c.y + sin(a) * r2))
+            d.stroke(tick, with: .color(Color(hex: 0xE2E5E9)), lineWidth: major ? 1.6 : 1)
+        }
+        d.stroke(circle(c, ring * 0.64), with: .color(Color(hex: 0x0F1012)), lineWidth: 1)
+        let knob: CGFloat = ring * 0.56
+        let knobGrad = Gradient(stops: [
+            .init(color: Color(hex: 0xA3A9B1), location: 0),
+            .init(color: Color(hex: 0x5D636B), location: 0.38),
+            .init(color: Color(hex: 0x2A2E33), location: 1),
+        ])
+        let knobCenter = CGPoint(x: c.x - knob * 0.25, y: c.y - knob * 0.4)
+        d.fill(circle(c, knob), with: .radialGradient(knobGrad, center: knobCenter, startRadius: 0, endRadius: knob * 1.3))
+        let pointer = Path(roundedRect: CGRect(x: c.x - 2, y: c.y - knob * 0.9, width: 4, height: knob * 0.28), cornerRadius: 2)
+        d.fill(pointer, with: .color(Palette.gold))
+
+        // 손잡이
+        let lw: CGFloat = w * 0.34
+        let lh: CGFloat = h * 0.07
+        let ly: CGFloat = h * (1 - 0.11 - 0.07)
+        var l = g
+        l.translateBy(x: cx, y: ly + lh / 2)
+        l.rotate(by: .degrees(Double(-28 * lever)))
+        l.translateBy(x: -cx, y: -(ly + lh / 2))
+        let leverGrad = Gradient(stops: [
+            .init(color: Color(hex: 0x9AA0A8), location: 0),
+            .init(color: Color(hex: 0x4D535B), location: 0.6),
+            .init(color: Color(hex: 0x2A2E33), location: 1),
+        ])
+        let handle = Path(roundedRect: CGRect(x: cx - lw / 2, y: ly, width: lw, height: lh), cornerRadius: lh / 2)
+        l.fill(handle, with: .linearGradient(leverGrad, startPoint: CGPoint(x: 0, y: ly), endPoint: CGPoint(x: 0, y: ly + lh)))
     }
 }
 
