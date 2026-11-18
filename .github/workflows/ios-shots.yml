@@ -1,0 +1,97 @@
+name: iOS 시뮬레이터 화면
+
+# 서명 없이 시뮬레이터용으로 빌드해 장면별 화면을 찍고 ios-shots 브랜치에 올린다 (Apple Secrets 없이 돈다).
+# 미리보기 브랜치에서: gh workflow run ios-shots.yml --ref <브랜치>
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "preview/ios*"]
+    paths: ["ios/**", ".github/workflows/ios-shots.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-shots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shots:
+    runs-on: macos-26
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: XcodeGen
+        run: |
+          brew install xcodegen >/dev/null
+          xcodegen generate
+          echo "::notice title=Xcode::$(xcodebuild -version | tr '\n' ' ')"
+
+      - name: 시뮬레이터 빌드
+        run: |
+          set -o pipefail
+          xcodebuild build -project HaruHandon.xcodeproj -scheme HaruHandon \
+            -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log | grep -E "error:|\*\* BUILD" || true
+          if ! grep -q "BUILD SUCCEEDED" build.log; then
+            msg=$(grep -E "error:" build.log | sort -u | head -n 40 | sed 's/%/%25/g' | awk '{printf "%s%%0A",$0}')
+            echo "::error title=컴파일 실패::$msg"
+            exit 1
+          fi
+
+      - name: 장면별 화면 찍기
+        run: |
+          BID=com.ohsang.util.haruhandon
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          c=[x for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')]
+          p=[x for x in c if 'Pro' in x['name'] and 'Max' not in x['name']] or c
+          print(p[-1]['udid'])")
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b >/dev/null
+          xcrun simctl ui "$UDID" appearance dark
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
+          APP=$(ls -d build/dd/Build/Products/Debug-iphonesimulator/HaruHandon.app)
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p shots
+          shot() { xcrun simctl io "$UDID" screenshot "shots/$1.png" >/dev/null 2>&1 && echo "saved $1"; }
+          run() { # run <seed> <script> <widget>
+            xcrun simctl terminate "$UDID" $BID >/dev/null 2>&1 || true
+            sleep 1
+            SIMCTL_CHILD_HANDON_SEED="$1" SIMCTL_CHILD_HANDON_SCRIPT="$2" SIMCTL_CHILD_HANDON_WIDGETSHOT="$3" \
+              xcrun simctl launch "$UDID" $BID >/dev/null
+          }
+          # 1) 닫힌 금고 (재물 라벨)
+          run dogam "" ""; sleep 5; shot i01-closed
+          # 2) 열기 → 행운 라벨 완성 → 광고 보고 하나 더 → 금괴 넣기
+          run dogam bonus ""
+          sleep 6.2; shot i02-open
+          sleep 2.2; shot i03-label-toast
+          sleep 2.6; shot i04-ad
+          sleep 3.2; shot i05-bonus
+          sleep 6.0; shot i06-closed-labels
+          # 3) 문구 도감
+          run dogam dogam ""; sleep 4; shot i07-dogam; sleep 3; shot i08-dogam-bond
+          # 4) 뒷면
+          run dogam flip ""; sleep 8.6; shot i09-back
+          # 5) 1냥 축하
+          run nyang open ""; sleep 8; shot i10-nyang
+          # 6) 라벨 다섯 개
+          run full "" ""; sleep 5; shot i11-full
+          # 7) 위젯
+          run dogam "" 1; sleep 7
+          DATA=$(xcrun simctl get_app_container "$UDID" $BID data)
+          cp "$DATA"/Documents/widget-*.png shots/ || echo "위젯 그림 없음"
+          ls -la shots
+
+      - name: 화면을 ios-shots 브랜치에 올리기
+        run: |
+          cd shots
+          git init -q && git checkout -q -b ios-shots
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "iOS 시뮬레이터 화면 ${{ github.run_number }} (${GITHUB_SHA::7})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ios-shots
