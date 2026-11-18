@@ -73,23 +73,25 @@ jobs:
             SIMCTL_CHILD_HANDON_SEED="$1" SIMCTL_CHILD_HANDON_SCRIPT="$2" SIMCTL_CHILD_HANDON_WIDGETSHOT="$3" \
               xcrun simctl launch "$UDID" $BID >/dev/null
           }
+          # 앱을 켠 뒤 T초가 될 때까지 기다린다 (화면 찍기가 느려도 시간이 밀리지 않게)
+          at() { while [ "$(python3 -c "import time;print(int((time.time()-$T0)*10))")" -lt "$(python3 -c "print(int($1*10))")" ]; do sleep 0.3; done; }
+          start() { run "$@"; T0=$(python3 -c "import time;print(time.time())"); }
           # 1) 닫힌 금고 (재물 라벨)
-          run dogam "" ""; sleep 5; shot i01-closed
-          # 2) 열기 → 행운 라벨 완성 → 광고 보고 하나 더 → 금괴 넣기
-          run dogam bonus ""
-          sleep 6.2; shot i02-open
-          sleep 2.2; shot i03-label-toast
-          sleep 2.6; shot i04-ad
-          sleep 3.2; shot i05-bonus
-          sleep 6.0; shot i06-closed-labels
+          start dogam "" ""; at 5; shot i01-closed
+          # 2) 열기(2초) → 행운 완성 → 18초에 광고 → 22초에 하나 더 → 34초에 금괴 넣기
+          start dogam bonus ""
+          at 9; shot i02-open
+          at 19.5; shot i04-ad
+          at 26; shot i05-bonus
+          at 40; shot i06-closed-labels
           # 3) 문구 도감
-          run dogam dogam ""; sleep 4; shot i07-dogam; sleep 3; shot i08-dogam-bond
+          start dogam dogam ""; at 4; shot i07-dogam; at 8; shot i08-dogam-bond
           # 4) 뒷면
-          run dogam flip ""; sleep 8.6; shot i09-back
+          start dogam flip ""; at 10; shot i09-back
           # 5) 1냥 축하
-          run nyang open ""; sleep 8; shot i10-nyang
+          start nyang open ""; at 9; shot i10-nyang
           # 6) 라벨 다섯 개
-          run full "" ""; sleep 5; shot i11-full
+          start full "" ""; at 5; shot i11-full
           # 7) 위젯
           run dogam "" 1; sleep 7
           DATA=$(xcrun simctl get_app_container "$UDID" $BID data)

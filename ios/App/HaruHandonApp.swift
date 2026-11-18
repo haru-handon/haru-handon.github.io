@@ -64,9 +64,9 @@ enum DebugScript {
                 m.openVault()
             case "bonus":
                 m.openVault()
-                await wait(7)
+                await wait(16)
                 m.askBonus()
-                await wait(8)
+                await wait(16)
                 m.closeVault()
             case "dogam":
                 m.dogamOpen = true
