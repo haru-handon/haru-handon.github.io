@@ -76,6 +76,8 @@ jobs:
           # 앱을 켠 뒤 T초가 될 때까지 기다린다 (화면 찍기가 느려도 시간이 밀리지 않게)
           at() { while [ "$(python3 -c "import time;print(int((time.time()-$T0)*10))")" -lt "$(python3 -c "print(int($1*10))")" ]; do sleep 0.3; done; }
           start() { run "$@"; T0=$(python3 -c "import time;print(time.time())"); }
+          # 0) 열린 금고 앞면: 시간을 넓게 잡아 여러 장
+          start dogam open ""; for k in 1 2 3 4 5 6; do shot i00-open-$k; sleep 1; done
           # 1) 닫힌 금고 (재물 라벨)
           start dogam "" ""; at 5; shot i01-closed
           # 2) 열기(2초) → 행운 완성 → 18초에 광고 → 22초에 하나 더 → 34초에 금괴 넣기
