@@ -20,6 +20,10 @@ struct HaruHandonApp: App {
                 .statusBarHidden(false)
                 .onAppear {
                     model.refreshWidgets()
+                    // 앱이 화면에 뜨자마자 추적 허용을 먼저 묻고, 답을 받은 뒤에 광고 SDK를 시작한다
+                    if !DebugScript.capturing {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { Ads.shared.startAfterTrackingPrompt() }
+                    }
                     #if DEBUG
                     DebugScript.run(model)
                     WidgetShots.renderIfRequested()
@@ -39,15 +43,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = Reminders.shared
-        Ads.shared.start()
+        // 광고 SDK는 추적 허용 질문이 끝난 뒤에 시작한다 (Ads.startAfterTrackingPrompt)
         return true
     }
 }
+
+#if !DEBUG
+enum DebugScript { static let capturing = false }
+#endif
 
 #if DEBUG
 /// 디버그 빌드 전용: 시뮬레이터에서 장면을 만들어 화면을 찍기 위한 순서
 /// HANDON_SEED = dogam | nyang | full,  HANDON_SCRIPT = open | bonus | dogam | flip
 enum DebugScript {
+    /// 시뮬레이터 캡처 중에는 추적 허용 창이 화면을 가리지 않게 묻지 않는다
+    static var capturing: Bool { ProcessInfo.processInfo.environment["HANDON_SEED"] != nil }
+
     static func prepare() {
         let env = ProcessInfo.processInfo.environment
         if let seed = env["HANDON_SEED"] { HandonStore.shared.seed(seed) }

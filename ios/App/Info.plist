@@ -30,6 +30,7 @@
 		<string>NanumMyeongjoBold.ttf</string>
 	</array>
 	<key>UIStatusBarStyle</key><string>UIStatusBarStyleLightContent</string>
+	<key>GADDelayAppMeasurementInit</key><true/>
 	<key>GADApplicationIdentifier</key><string>$(ADMOB_APP_ID)</string>
 	<key>AdmobRewardedID</key><string>$(ADMOB_REWARDED_ID)</string>
 	<key>NSUserTrackingUsageDescription</key><string>광고를 보고 문구를 하나 더 받을 때 관심사에 맞는 광고를 보여주는 데 사용해요. 허용하지 않아도 문구는 똑같이 받아요.</string>

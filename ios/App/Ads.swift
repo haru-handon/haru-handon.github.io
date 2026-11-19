@@ -13,6 +13,8 @@ final class Ads: NSObject, FullScreenContentDelegate {
     private weak var presenter: UIViewController?
     private var finish: ((Result) -> Void)?
     private var earned = false
+    private var started = false
+    private var retried = false
 
     enum Result { case reward, closed, unavailable }
 
@@ -21,29 +23,49 @@ final class Ads: NSObject, FullScreenContentDelegate {
             .flatMap { $0.isEmpty || $0.hasPrefix("$(") ? nil : $0 } ?? "ca-app-pub-3940256099942544/1712485313"
     }
 
-    func start() {
-        MobileAds.shared.start { [weak self] _ in self?.load() }
-    }
-
-    func show(done: @escaping (Result) -> Void) {
-        guard let vc = Self.topController() else { done(.unavailable); return }
+    /// 추적 허용 질문(처음 한 번) → 답을 받은 뒤 광고 SDK 시작 → 광고 미리 불러오기.
+    /// 그 전에는 광고 SDK가 아무 데이터도 모으지 않는다.
+    func startAfterTrackingPrompt() {
         askTrackingIfNeeded { [weak self] in
-            guard let self else { return }
-            if let ad = self.ad {
-                self.present(ad, from: vc, done: done)
-            } else {
-                self.waiting = done
-                self.presenter = vc
-                self.load()
+            guard let self, !self.started else { return }
+            self.started = true
+            MobileAds.shared.start { _ in
+                DispatchQueue.main.async { self.load() }
             }
         }
     }
 
-    /// 광고 버튼을 처음 누를 때만 묻는다. 거부해도 보상은 똑같다
+    func show(done: @escaping (Result) -> Void) {
+        guard let vc = Self.topController() else { done(.unavailable); return }
+        guard started else {
+            // 아직 추적 질문·SDK 시작 전이면 먼저 끝내고, 광고가 불러와지면 이어서 보여 준다
+            waiting = done
+            presenter = vc
+            startAfterTrackingPrompt()
+            return
+        }
+        if let ad = self.ad {
+            present(ad, from: vc, done: done)
+        } else {
+            waiting = done
+            presenter = vc
+            load()
+        }
+    }
+
+    /// 앱을 처음 켤 때 한 번 묻는다. 거부해도 앱과 광고 보상은 똑같다
     private func askTrackingIfNeeded(_ next: @escaping () -> Void) {
         if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
-            ATTrackingManager.requestTrackingAuthorization { _ in
-                DispatchQueue.main.async { next() }
+            ATTrackingManager.requestTrackingAuthorization { status in
+                DispatchQueue.main.async {
+                    // 드물게 앱이 아직 활성 상태가 아니면 notDetermined로 바로 돌아온다 → 잠시 뒤 한 번 더
+                    if status == .notDetermined && !self.retried {
+                        self.retried = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.askTrackingIfNeeded(next) }
+                    } else {
+                        next()
+                    }
+                }
             }
         } else {
             next()
@@ -51,7 +73,7 @@ final class Ads: NSObject, FullScreenContentDelegate {
     }
 
     private func load() {
-        guard ad == nil, !loading else { return }
+        guard started, ad == nil, !loading else { return }
         loading = true
         RewardedAd.load(with: unitID, request: Request()) { [weak self] loaded, _ in
             DispatchQueue.main.async {
