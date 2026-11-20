@@ -226,27 +226,53 @@ await step(`빌드 ${meta.buildNumber} 선택`, async () => {
 });
 
 /* ---------- 앱 심사 정보 ---------- */
-await step('앱 심사 메모', async () => {
-  const attrs = { notes: meta.reviewNotes, demoAccountRequired: false };
+/** 같은 계정의 다른 앱 심사 정보에 적힌 연락처를 찾아 쓴다 (매번 직접 입력하지 않게) */
+async function contactFromOtherApps() {
+  const apps = (await api('GET', '/v1/apps?limit=50')).data.filter((x) => x.id !== app.id);
+  for (const other of apps) {
+    const vs = (await api('GET', `/v1/apps/${other.id}/appStoreVersions?limit=5`)).data;
+    for (const v of vs) {
+      let d = null;
+      try { d = (await api('GET', `/v1/appStoreVersions/${v.id}/appStoreReviewDetail`)).data; } catch { d = null; }
+      const a = d && d.attributes;
+      if (a && a.contactFirstName && a.contactLastName && a.contactEmail && a.contactPhone) {
+        return { from: other.attributes.name, contact: {
+          contactFirstName: a.contactFirstName, contactLastName: a.contactLastName,
+          contactEmail: a.contactEmail, contactPhone: a.contactPhone } };
+      }
+    }
+  }
+  return null;
+}
+
+await step('앱 심사 정보', async () => {
   let detail = null;
   try {
     detail = (await api('GET', `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`)).data;
   } catch (e) {
     if (e.status !== 404) throw e;
   }
+  const cur = (detail && detail.attributes) || {};
+  const attrs = { notes: meta.reviewNotes, demoAccountRequired: false };
+  let from = '';
+  if (!(cur.contactFirstName && cur.contactLastName && cur.contactEmail && cur.contactPhone)) {
+    const found = await contactFromOtherApps();
+    if (found) {
+      Object.assign(attrs, found.contact);
+      from = ` · 연락처는 "${found.from}" 심사 정보와 같게`;
+    } else {
+      todo.push('앱 심사 정보 → 연락처(이름·성·전화번호·이메일)를 직접 입력');
+    }
+  }
   if (detail) {
     await api('PATCH', `/v1/appStoreReviewDetails/${detail.id}`, { data: { type: 'appStoreReviewDetails', id: detail.id, attributes: attrs } });
   } else {
-    detail = (await api('POST', '/v1/appStoreReviewDetails', {
+    await api('POST', '/v1/appStoreReviewDetails', {
       data: { type: 'appStoreReviewDetails', attributes: attrs,
               relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } },
-    })).data;
+    });
   }
-  const a = detail.attributes || {};
-  if (!a.contactPhone || !a.contactEmail || !a.contactFirstName) {
-    todo.push('앱 심사 정보 → 연락처(이름·전화번호·이메일)를 직접 입력');
-  }
-  return '데모 계정 필요 없음, 영문 메모 입력';
+  return `데모 계정 필요 없음, 영문 메모${from}`;
 });
 
 /* ---------- 요약 ---------- */
