@@ -110,21 +110,35 @@ await step('연령 등급', async () => {
     violenceCartoonOrFantasy: 'NONE', violenceRealistic: 'NONE', violenceRealisticProlongedGraphicOrSadistic: 'NONE',
     gambling: false, unrestrictedWebAccess: false,
   };
-  await api('PATCH', `/v1/ageRatingDeclarations/${id}`, { data: { type: 'ageRatingDeclarations', id, attributes: base } });
-  // 2025년에 새로 생긴 질문들: API 버전에 따라 없을 수 있어서 하나씩, 안 되면 건너뛴다
-  const extra = {
+  // 2025년 새 질문은 한 번에 같이 보내야 한다. API가 모르는 항목은 빼고, 더 필요한 항목은 채워서 다시 보낸다
+  const attrs = {
+    ...base,
     lootBox: false, advertising: true, userGeneratedContent: false, messagingAndChat: false,
     healthOrWellnessTopics: false, parentalControls: false, ageAssurance: false, gunsOrOtherWeapons: 'NONE',
   };
   const skipped = [];
-  for (const [k, v] of Object.entries(extra)) {
+  for (let tryNo = 0; tryNo < 6; tryNo++) {
     try {
-      await api('PATCH', `/v1/ageRatingDeclarations/${id}`, { data: { type: 'ageRatingDeclarations', id, attributes: { [k]: v } } });
-    } catch {
-      skipped.push(k);
+      await api('PATCH', `/v1/ageRatingDeclarations/${id}`, { data: { type: 'ageRatingDeclarations', id, attributes: attrs } });
+      break;
+    } catch (e) {
+      const errs = (e.json && e.json.errors) || [];
+      if (!errs.length || tryNo === 5) throw e;
+      for (const x of errs) {
+        const name = ((x.source && x.source.pointer) || '').split('/').pop()
+          || (/'([A-Za-z]+)'/.exec(x.detail || '') || [])[1];
+        if (!name) continue;
+        if (/UNKNOWN|NOT_ALLOWED|INVALID/.test(x.code) && name in attrs) {
+          delete attrs[name];
+          skipped.push(name);
+        } else if (/REQUIRED/.test(x.code) && !(name in attrs)) {
+          // 모르는 새 질문: 예/아니요면 아니요, 단계형이면 없음
+          attrs[name] = /level|Level|Weapons|Themes|Humor|References|Violence/.test(name) ? 'NONE' : false;
+        }
+      }
     }
   }
-  if (skipped.length) todo.push(`연령 등급 새 질문(직접 확인): ${skipped.join(', ')} → 광고 "예", 나머지 "아니요/없음"`);
+  if (skipped.length) todo.push(`연령 등급에서 API가 받지 않은 질문(직접 확인): ${skipped.join(', ')}`);
   return `전부 "없음" (광고 있음)${skipped.length ? ` · API에 없는 질문 ${skipped.length}개는 직접 확인` : ''}`;
 });
 
